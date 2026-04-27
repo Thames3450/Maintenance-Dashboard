@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Smart Maintenance | Insights</title>
+  <title>SmartFix | Maintenance Performance Center</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="./style.css?v=20260426-fixed" />
+  <script src="./app.js?v=20260426-fixed" defer></script>
 </head>
 <body>
   <div class="app-container">
@@ -21,125 +22,125 @@
         <i data-lucide="layout-dashboard"></i>
         <span>Smart<strong>Fix</strong></span>
       </div>
-      <div class="system-indicator">
+      <div class="system-indicator" id="systemIndicator">
         <div class="dot pulse"></div>
-        <span id="systemStatus">กำลังโหลดข้อมูล...</span>
+        <span id="systemStatus">กำลังโหลดระบบ...</span>
       </div>
     </nav>
 
     <header class="main-header">
       <div class="header-content">
-        <h1>History + Dashboard</h1>
-        <p>ดูประวัติการซ่อมย้อนหลัง พร้อม KPI และกราฟวิเคราะห์ในหน้าเดียว</p>
+        <h1>History + Dashboard + Performance</h1>
+        <p>ดูประวัติการซ่อมย้อนหลัง พร้อม KPI, AI Insight และประสิทธิภาพเครื่องจักรรายเดือน</p>
       </div>
     </header>
 
     <main class="content-layout">
-   <section class="glass-card">
-  <div class="section-header section-header--space">
-    <div class="section-header__left">
-      <div class="icon-box"><i data-lucide="filter"></i></div>
-      <h3>ตัวกรองข้อมูล</h3>
-    </div>
+      <section class="glass-card filter-card">
+        <div class="section-header section-header--space">
+          <div class="section-header__left">
+            <div class="icon-box"><i data-lucide="filter"></i></div>
+            <h3>ตัวกรองข้อมูล</h3>
+          </div>
 
-    <button type="button" class="filter-toggle-btn" id="toggleFilterBtn">
-      <i data-lucide="chevron-up"></i>
-      <span id="toggleFilterText">ซ่อนตัวกรอง</span>
-    </button>
-  </div>
+          <button type="button" class="filter-toggle-btn" id="toggleFilterBtn">
+            <i data-lucide="chevron-up"></i>
+            <span>ซ่อนตัวกรอง</span>
+          </button>
+        </div>
 
-  <div class="filter-content" id="filterContent">
-    <div class="filter-grid">
-      <div class="input-group">
-        <label>ตั้งแต่วันที่</label>
-        <input type="date" id="fromDate">
-      </div>
+        <div class="filter-content" id="filterContent">
+          <div class="filter-grid">
+            <div class="input-group">
+              <label for="fromDate">ตั้งแต่วันที่</label>
+              <input type="date" id="fromDate" />
+            </div>
 
-      <div class="input-group">
-        <label>ถึงวันที่</label>
-        <input type="date" id="toDate">
-      </div>
+            <div class="input-group">
+              <label for="toDate">ถึงวันที่</label>
+              <input type="date" id="toDate" />
+            </div>
 
-      <div class="input-group">
-        <label>เดือน</label>
-        <select id="monthFilter">
-          <option value="">-- ทั้งหมด --</option>
-          <option value="1">มกราคม</option>
-          <option value="2">กุมภาพันธ์</option>
-          <option value="3">มีนาคม</option>
-          <option value="4">เมษายน</option>
-          <option value="5">พฤษภาคม</option>
-          <option value="6">มิถุนายน</option>
-          <option value="7">กรกฎาคม</option>
-          <option value="8">สิงหาคม</option>
-          <option value="9">กันยายน</option>
-          <option value="10">ตุลาคม</option>
-          <option value="11">พฤศจิกายน</option>
-          <option value="12">ธันวาคม</option>
-        </select>
-      </div>
+            <div class="input-group">
+              <label for="monthFilter">เดือน</label>
+              <select id="monthFilter">
+                <option value="">-- ทั้งหมด --</option>
+                <option value="1">มกราคม</option>
+                <option value="2">กุมภาพันธ์</option>
+                <option value="3">มีนาคม</option>
+                <option value="4">เมษายน</option>
+                <option value="5">พฤษภาคม</option>
+                <option value="6">มิถุนายน</option>
+                <option value="7">กรกฎาคม</option>
+                <option value="8">สิงหาคม</option>
+                <option value="9">กันยายน</option>
+                <option value="10">ตุลาคม</option>
+                <option value="11">พฤศจิกายน</option>
+                <option value="12">ธันวาคม</option>
+              </select>
+            </div>
 
-      <div class="input-group">
-        <label>ปี</label>
-        <select id="yearFilter">
-          <option value="">-- ทั้งหมด --</option>
-        </select>
-      </div>
+            <div class="input-group">
+              <label for="yearFilter">ปี</label>
+              <select id="yearFilter">
+                <option value="">-- ทั้งหมด --</option>
+              </select>
+            </div>
 
-      <div class="input-group">
-        <label>ชื่อเครื่องจักร</label>
-        <select id="machineFilter">
-          <option value="">-- ทั้งหมด --</option>
-        </select>
-      </div>
+            <div class="input-group">
+              <label for="machineFilter">ชื่อเครื่องจักร</label>
+              <select id="machineFilter">
+                <option value="">-- ทั้งหมด --</option>
+              </select>
+            </div>
 
-      <div class="input-group">
-        <label>หมายเลขเครื่อง</label>
-        <select id="machineNoFilter" disabled>
-          <option value="">-- ทั้งหมด --</option>
-        </select>
-      </div>
+            <div class="input-group">
+              <label for="machineNoFilter">หมายเลขเครื่อง</label>
+              <select id="machineNoFilter" disabled>
+                <option value="">-- ทั้งหมด --</option>
+              </select>
+            </div>
 
-      <div class="input-group">
-        <label>กะ</label>
-        <select id="shiftFilter">
-          <option value="">-- ทั้งหมด --</option>
-          <option value="A">A</option>
-          <option value="B">B</option>
-          <option value="O">O</option>
-        </select>
-      </div>
+            <div class="input-group">
+              <label for="shiftFilter">กะ</label>
+              <select id="shiftFilter">
+                <option value="">-- ทั้งหมด --</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="O">O</option>
+              </select>
+            </div>
 
-      <div class="input-group">
-        <label>ผลหลังซ่อม</label>
-        <select id="resultFilter">
-          <option value="">-- ทั้งหมด --</option>
-          <option value="ใช้งานได้ปกติ">ใช้งานได้ปกติ</option>
-          <option value="ใช้งานได้ชั่วคราว">ใช้งานได้ชั่วคราว</option>
-          <option value="ต้องติดตามต่อ">ต้องติดตามต่อ</option>
-          <option value="รอซ่อมเพิ่มเติม">รอซ่อมเพิ่มเติม</option>
-        </select>
-      </div>
+            <div class="input-group">
+              <label for="resultFilter">ผลหลังซ่อม</label>
+              <select id="resultFilter">
+                <option value="">-- ทั้งหมด --</option>
+                <option value="ใช้งานได้ปกติ">ใช้งานได้ปกติ</option>
+                <option value="ใช้งานได้ชั่วคราว">ใช้งานได้ชั่วคราว</option>
+                <option value="ต้องติดตามต่อ">ต้องติดตามต่อ</option>
+                <option value="รอซ่อมเพิ่มเติม">รอซ่อมเพิ่มเติม</option>
+              </select>
+            </div>
 
-      <div class="input-group full-width">
-        <label>ค้นหา</label>
-        <input
-          type="text"
-          id="keywordFilter"
-          placeholder="ค้นหาจาก จุดที่เสีย / อาการ / สาเหตุ / การแก้ไข / ชื่อช่าง / หมายเหตุ"
-        />
-      </div>
-    </div>
+            <div class="input-group full-width">
+              <label for="keywordFilter">ค้นหา</label>
+              <input
+                type="text"
+                id="keywordFilter"
+                placeholder="ค้นหาจาก เครื่องจักร / หมายเลข / จุดที่เสีย / อาการ / สาเหตุ / การแก้ไข / ชื่อช่าง / หมายเหตุ"
+              />
+            </div>
+          </div>
 
-    <div class="filter-actions">
-      <button type="button" class="btn-outline" id="todayRangeBtn">วันนี้</button>
-      <button type="button" class="btn-outline" id="thisMonthBtn">เดือนนี้</button>
-      <button type="button" class="btn-outline" id="resetFilterBtn">ล้างตัวกรอง</button>
-    </div>
-  </div>
-</section>
+          <div class="filter-actions">
+            <button type="button" class="btn-outline" id="todayRangeBtn">วันนี้</button>
+            <button type="button" class="btn-outline" id="thisMonthBtn">เดือนนี้</button>
+            <button type="button" class="btn-outline" id="resetFilterBtn">ล้างตัวกรอง</button>
+          </div>
+        </div>
+      </section>
 
-      <section class="glass-card">
+      <section class="glass-card tab-card">
         <div class="tab-bar">
           <button type="button" class="tab-btn active" data-tab="historyTab">
             <i data-lucide="history"></i>
@@ -149,17 +150,20 @@
             <i data-lucide="bar-chart-3"></i>
             <span>Dashboard</span>
           </button>
+          <button type="button" class="tab-btn" data-tab="performanceTab">
+            <i data-lucide="activity"></i>
+            <span>Performance</span>
+          </button>
         </div>
       </section>
 
       <section id="historyTab" class="tab-panel active">
         <section class="glass-card">
-          <div class="section-header">
-            <div class="icon-box"><i data-lucide="table"></i></div>
-            <h3>รายการประวัติการซ่อม</h3>
-          </div>
-
-          <div class="table-toolbar">
+          <div class="section-header section-header--space">
+            <div class="section-header__left">
+              <div class="icon-box"><i data-lucide="table"></i></div>
+              <h3>รายการประวัติการซ่อม</h3>
+            </div>
             <div class="table-count" id="tableCountText">กำลังโหลดข้อมูล...</div>
           </div>
 
@@ -170,6 +174,7 @@
                   <th>วันที่</th>
                   <th>เครื่องจักร</th>
                   <th>หมายเลขเครื่อง</th>
+                  <th>ไลน์ผลิต</th>
                   <th>จุดที่เสีย</th>
                   <th>อาการที่เสีย</th>
                   <th>Downtime</th>
@@ -180,7 +185,7 @@
               </thead>
               <tbody id="historyTableBody">
                 <tr>
-                  <td colspan="9" class="empty-cell">กำลังโหลดข้อมูล...</td>
+                  <td colspan="10" class="empty-cell">กำลังโหลดข้อมูล...</td>
                 </tr>
               </tbody>
             </table>
@@ -245,109 +250,95 @@
           </div>
         </section>
 
-<section class="ai-grid">
-  <div class="glass-card ai-card ai-risk">
-    <div class="ai-card-head">
-      <div class="ai-card-title">
-        <div class="ai-icon-wrap danger">
-          <i data-lucide="shield-alert"></i>
-        </div>
-        <div>
-          <div class="ai-eyebrow">AI INSIGHT</div>
-          <h3>AI เครื่องน่าห่วง</h3>
-        </div>
-      </div>
-      <span class="ai-pill neutral" id="aiRiskLevel">รอวิเคราะห์</span>
-    </div>
+        <section class="ai-grid">
+          <div class="glass-card ai-card ai-risk">
+            <div class="ai-card-head">
+              <div class="ai-card-title">
+                <div class="ai-icon-wrap danger"><i data-lucide="shield-alert"></i></div>
+                <div>
+                  <div class="ai-eyebrow">AI INSIGHT</div>
+                  <h3>AI เครื่องน่าห่วง</h3>
+                </div>
+              </div>
+              <span class="ai-pill neutral" id="aiRiskLevel">รอวิเคราะห์</span>
+            </div>
+            <div class="ai-card-main" id="aiRiskMachine">-</div>
+            <div class="ai-card-sub" id="aiRiskScore">Risk Score: -</div>
+            <div class="ai-card-desc" id="aiRiskReason">ยังไม่มีข้อมูลเพียงพอ</div>
+          </div>
 
-    <div class="ai-card-main" id="aiRiskMachine">-</div>
-    <div class="ai-card-sub" id="aiRiskScore">Risk Score: -</div>
-    <div class="ai-card-desc" id="aiRiskReason">ยังไม่มีข้อมูลเพียงพอ</div>
-  </div>
+          <div class="glass-card ai-card ai-repeat">
+            <div class="ai-card-head">
+              <div class="ai-card-title">
+                <div class="ai-icon-wrap warning"><i data-lucide="repeat"></i></div>
+                <div>
+                  <div class="ai-eyebrow">AI INSIGHT</div>
+                  <h3>AI จับเสียซ้ำ</h3>
+                </div>
+              </div>
+              <span class="ai-pill neutral" id="aiRepeatLevel">รอวิเคราะห์</span>
+            </div>
+            <div class="ai-card-main" id="aiRepeatCase">-</div>
+            <div class="ai-card-sub" id="aiRepeatCount">จำนวนเสียซ้ำ: -</div>
+            <div class="ai-card-desc" id="aiRepeatReason">ยังไม่มีข้อมูลเสียซ้ำ</div>
+          </div>
 
-  <div class="glass-card ai-card ai-repeat">
-    <div class="ai-card-head">
-      <div class="ai-card-title">
-        <div class="ai-icon-wrap warning">
-          <i data-lucide="repeat"></i>
-        </div>
-        <div>
-          <div class="ai-eyebrow">AI INSIGHT</div>
-          <h3>AI จับเสียซ้ำ</h3>
-        </div>
-      </div>
-      <span class="ai-pill neutral" id="aiRepeatLevel">รอวิเคราะห์</span>
-    </div>
+          <div class="glass-card ai-card ai-trend">
+            <div class="ai-card-head">
+              <div class="ai-card-title">
+                <div class="ai-icon-wrap success"><i data-lucide="trending-up"></i></div>
+                <div>
+                  <div class="ai-eyebrow">AI INSIGHT</div>
+                  <h3>AI แนวโน้มย้อนหลัง</h3>
+                </div>
+              </div>
+              <span class="ai-pill neutral" id="aiTrendLevel">รอวิเคราะห์</span>
+            </div>
+            <div class="ai-card-main small" id="aiTrendTitle">-</div>
+            <div class="ai-card-desc" id="aiTrendReason">ยังไม่มีข้อมูลแนวโน้มย้อนหลัง</div>
+          </div>
+        </section>
 
-    <div class="ai-card-main" id="aiRepeatCase">-</div>
-    <div class="ai-card-sub" id="aiRepeatCount">จำนวนเสียซ้ำ: -</div>
-    <div class="ai-card-desc" id="aiRepeatReason">ยังไม่มีข้อมูลเสียซ้ำ</div>
-  </div>
+        <section class="glass-card">
+          <div class="section-header compact">
+            <div class="icon-box"><i data-lucide="sparkles"></i></div>
+            <h3>AI Insight Summary</h3>
+          </div>
+          <div class="ai-summary-list" id="aiSummaryList">
+            <div class="ai-summary-item">ยังไม่มีข้อมูลวิเคราะห์</div>
+          </div>
+        </section>
 
-  <div class="glass-card ai-card ai-trend">
-    <div class="ai-card-head">
-      <div class="ai-card-title">
-        <div class="ai-icon-wrap success">
-          <i data-lucide="trending-up"></i>
-        </div>
-        <div>
-          <div class="ai-eyebrow">AI INSIGHT</div>
-          <h3>AI แนวโน้มย้อนหลัง</h3>
-        </div>
-      </div>
-      <span class="ai-pill neutral" id="aiTrendLevel">รอวิเคราะห์</span>
-    </div>
+        <section class="glass-card">
+          <div class="section-header compact">
+            <div class="icon-box"><i data-lucide="repeat"></i></div>
+            <h3>รายการเสียซ้ำที่ควรเฝ้าระวัง</h3>
+          </div>
+          <div class="mini-table-wrap">
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>เครื่องจักร</th>
+                  <th>จุดที่เสีย</th>
+                  <th>อาการที่เสีย</th>
+                  <th>จำนวนครั้ง</th>
+                  <th>ครั้งล่าสุด</th>
+                </tr>
+              </thead>
+              <tbody id="aiRepeatTable">
+                <tr class="empty-row"><td colspan="5">ไม่พบข้อมูล</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-    <div class="ai-card-main small" id="aiTrendTitle">-</div>
-    <div class="ai-card-desc" id="aiTrendReason">ยังไม่มีข้อมูลแนวโน้มย้อนหลัง</div>
-  </div>
-</section>
-
-<section class="glass-card ai-summary-card">
-  <div class="section-header compact">
-    <div class="icon-box"><i data-lucide="sparkles"></i></div>
-    <h3>AI Insight Summary</h3>
-  </div>
-  <div class="ai-summary-list" id="aiSummaryList">
-    <div class="ai-summary-item">ยังไม่มีข้อมูลวิเคราะห์</div>
-  </div>
-</section>
-
-<section class="glass-card">
-  <div class="section-header compact">
-    <div class="icon-box"><i data-lucide="repeat"></i></div>
-    <h3>รายการเสียซ้ำที่ควรเฝ้าระวัง</h3>
-  </div>
-
-  <div class="mini-table-wrap">
-    <table class="mini-table">
-      <thead>
-        <tr>
-          <th>เครื่องจักร</th>
-          <th>จุดที่เสีย</th>
-          <th>อาการที่เสีย</th>
-          <th>จำนวนครั้ง</th>
-          <th>ครั้งล่าสุด</th>
-        </tr>
-      </thead>
-      <tbody id="aiRepeatTable">
-        <tr class="empty-row">
-          <td colspan="5">ไม่พบข้อมูล</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</section>
-        
         <section class="chart-grid">
           <div class="glass-card chart-card">
             <div class="section-header compact">
               <div class="icon-box"><i data-lucide="bar-chart-3"></i></div>
               <h3>Downtime ตามเครื่องจักร</h3>
             </div>
-            <div class="chart-wrap">
-              <canvas id="machineDowntimeChart"></canvas>
-            </div>
+            <div class="chart-wrap"><canvas id="machineDowntimeChart"></canvas></div>
           </div>
 
           <div class="glass-card chart-card">
@@ -355,9 +346,7 @@
               <div class="icon-box"><i data-lucide="map"></i></div>
               <h3>Top จุดที่เสียบ่อย</h3>
             </div>
-            <div class="chart-wrap">
-              <canvas id="pointChart"></canvas>
-            </div>
+            <div class="chart-wrap"><canvas id="pointChart"></canvas></div>
           </div>
 
           <div class="glass-card chart-card full-width">
@@ -365,9 +354,7 @@
               <div class="icon-box"><i data-lucide="line-chart"></i></div>
               <h3>แนวโน้ม Downtime รายวัน</h3>
             </div>
-            <div class="chart-wrap large">
-              <canvas id="dailyTrendChart"></canvas>
-            </div>
+            <div class="chart-wrap large"><canvas id="dailyTrendChart"></canvas></div>
           </div>
 
           <div class="glass-card chart-card">
@@ -375,9 +362,7 @@
               <div class="icon-box"><i data-lucide="pie-chart"></i></div>
               <h3>ประเภทงานเสีย</h3>
             </div>
-            <div class="chart-wrap doughnut">
-              <canvas id="typeChart"></canvas>
-            </div>
+            <div class="chart-wrap doughnut"><canvas id="typeChart"></canvas></div>
           </div>
 
           <div class="glass-card chart-card">
@@ -385,9 +370,7 @@
               <div class="icon-box"><i data-lucide="flame"></i></div>
               <h3>Top อาการที่เสีย</h3>
             </div>
-            <div class="chart-wrap">
-              <canvas id="problemChart"></canvas>
-            </div>
+            <div class="chart-wrap"><canvas id="problemChart"></canvas></div>
           </div>
         </section>
 
@@ -399,13 +382,221 @@
             </div>
             <div class="mini-table-wrap">
               <table class="mini-table">
-                <thead>
-                  <tr>
-                    <th>อาการที่เสีย</th>
-                    <th>จำนวนครั้ง</th>
-                  </tr>
-                </thead>
-                <tbody id="topProblemTable"></tbody>
+                <thead><tr><th>อาการที่เสีย</th><th>จำนวน</th></tr></thead>
+                <tbody id="topProblemTable"><tr class="empty-row"><td colspan="2">ไม่พบข้อมูล</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="glass-card">
+            <div class="section-header compact">
+              <div class="icon-box"><i data-lucide="map-pin"></i></div>
+              <h3>Top 5 จุดที่เสียบ่อย</h3>
+            </div>
+            <div class="mini-table-wrap">
+              <table class="mini-table">
+                <thead><tr><th>จุดที่เสีย</th><th>จำนวน</th></tr></thead>
+                <tbody id="topPointTable"><tr class="empty-row"><td colspan="2">ไม่พบข้อมูล</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="glass-card">
+            <div class="section-header compact">
+              <div class="icon-box"><i data-lucide="timer"></i></div>
+              <h3>Top 5 Downtime สูงสุด</h3>
+            </div>
+            <div class="mini-table-wrap">
+              <table class="mini-table">
+                <thead><tr><th>เครื่องจักร</th><th>Downtime</th></tr></thead>
+                <tbody id="topMachineDowntimeTable"><tr class="empty-row"><td colspan="2">ไม่พบข้อมูล</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section id="performanceTab" class="tab-panel">
+        <section class="glass-card performance-control-card">
+          <div class="section-header compact">
+            <div class="icon-box"><i data-lucide="settings-2"></i></div>
+            <div>
+              <h3>Performance Center</h3>
+              <p class="performance-note">วิเคราะห์ Availability, MTBF, MTTR, Monthly Trend, Pareto และคำแนะนำการปรับปรุง</p>
+            </div>
+          </div>
+
+          <div class="performance-settings">
+            <div class="input-group">
+              <label for="plannedHoursInput">Planned Time ต่อเครื่อง (ชั่วโมง)</label>
+              <input type="number" id="plannedHoursInput" min="1" step="1" placeholder="ปล่อยว่าง = 24 ชม. × จำนวนวัน" />
+            </div>
+
+            <div class="input-group">
+              <label for="targetAvailabilityInput">Target Availability (%)</label>
+              <input type="number" id="targetAvailabilityInput" min="1" max="100" step="0.1" value="95" />
+            </div>
+
+            <div class="input-group">
+              <label for="targetMtbfInput">Target MTBF (ชั่วโมง)</label>
+              <input type="number" id="targetMtbfInput" min="1" step="1" value="100" />
+            </div>
+
+            <div class="input-group">
+              <label for="targetMttrInput">Target MTTR (นาที)</label>
+              <input type="number" id="targetMttrInput" min="1" step="1" value="37" />
+            </div>
+
+            <div class="performance-help full-width" id="performancePeriodInfo">
+              ระบบจะคำนวณ Planned Time อัตโนมัติจากเดือน/ปี หรือช่วงวันที่ที่เลือก
+            </div>
+          </div>
+        </section>
+
+        <section class="kpi-grid performance-kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon green"><i data-lucide="check-circle-2"></i></div>
+            <div>
+              <div class="kpi-label">Availability เฉลี่ย</div>
+              <div class="kpi-value" id="perfAvgAvailability">0%</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon blue"><i data-lucide="timer-reset"></i></div>
+            <div>
+              <div class="kpi-label">MTBF เฉลี่ย</div>
+              <div class="kpi-value" id="perfAvgMtbf">0 ชม.</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon amber"><i data-lucide="wrench"></i></div>
+            <div>
+              <div class="kpi-label">MTTR เฉลี่ย</div>
+              <div class="kpi-value" id="perfAvgMttr">0 นาที</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon red"><i data-lucide="alert-octagon"></i></div>
+            <div>
+              <div class="kpi-label">จำนวนครั้งที่เสีย</div>
+              <div class="kpi-value" id="perfTotalFailures">0</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon purple"><i data-lucide="clock-4"></i></div>
+            <div>
+              <div class="kpi-label">Downtime รวม</div>
+              <div class="kpi-value" id="perfTotalDowntime">0 ชม.</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon slate"><i data-lucide="triangle-alert"></i></div>
+            <div>
+              <div class="kpi-label">เครื่องที่ควรโฟกัส</div>
+              <div class="kpi-value small" id="perfWorstMachine">-</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="glass-card">
+          <div class="section-header compact">
+            <div class="icon-box"><i data-lucide="clipboard-check"></i></div>
+            <h3>Action Recommendation</h3>
+          </div>
+          <div class="recommendation-grid" id="performanceInsightList">
+            <div class="ai-summary-item">ยังไม่มีข้อมูลสำหรับวิเคราะห์</div>
+          </div>
+        </section>
+
+        <section class="chart-grid performance-chart-grid">
+          <div class="glass-card chart-card full-width">
+            <div class="section-header compact">
+              <div class="icon-box"><i data-lucide="line-chart"></i></div>
+              <h3>Monthly Availability Trend</h3>
+            </div>
+            <div class="chart-wrap large"><canvas id="monthlyAvailabilityChart"></canvas></div>
+          </div>
+
+          <div class="glass-card chart-card full-width">
+            <div class="section-header compact">
+              <div class="icon-box"><i data-lucide="activity"></i></div>
+              <h3>Monthly MTBF / MTTR Trend</h3>
+            </div>
+            <div class="chart-wrap large"><canvas id="monthlyMtbfMttrChart"></canvas></div>
+          </div>
+
+          <div class="glass-card chart-card full-width">
+            <div class="section-header compact">
+              <div class="icon-box"><i data-lucide="trending-down"></i></div>
+              <h3>Monthly Downtime + Failure Trend</h3>
+            </div>
+            <div class="chart-wrap large"><canvas id="monthlyDowntimeFailureChart"></canvas></div>
+          </div>
+
+          <div class="glass-card chart-card">
+            <div class="section-header compact">
+              <div class="icon-box"><i data-lucide="badge-percent"></i></div>
+              <h3>Availability ตามเครื่องจักร</h3>
+            </div>
+            <div class="chart-wrap"><canvas id="perfAvailabilityChart"></canvas></div>
+          </div>
+
+          <div class="glass-card chart-card">
+            <div class="section-header compact">
+              <div class="icon-box"><i data-lucide="timer-reset"></i></div>
+              <h3>MTBF ตามเครื่องจักร</h3>
+            </div>
+            <div class="chart-wrap"><canvas id="perfMtbfChart"></canvas></div>
+          </div>
+
+          <div class="glass-card chart-card">
+            <div class="section-header compact">
+              <div class="icon-box"><i data-lucide="wrench"></i></div>
+              <h3>MTTR ตามเครื่องจักร</h3>
+            </div>
+            <div class="chart-wrap"><canvas id="perfMttrChart"></canvas></div>
+          </div>
+
+          <div class="glass-card chart-card">
+            <div class="section-header compact">
+              <div class="icon-box"><i data-lucide="scatter-chart"></i></div>
+              <h3>Downtime เทียบจำนวนครั้งเสีย</h3>
+            </div>
+            <div class="chart-wrap"><canvas id="perfDowntimeFailureChart"></canvas></div>
+          </div>
+
+          <div class="glass-card chart-card full-width">
+            <div class="section-header compact">
+              <div class="icon-box"><i data-lucide="bar-chart-big"></i></div>
+              <h3>Pareto: อาการเสียที่สร้าง Downtime สูงสุด</h3>
+            </div>
+            <div class="chart-wrap large"><canvas id="paretoProblemChart"></canvas></div>
+          </div>
+        </section>
+
+        <section class="summary-grid performance-summary-grid">
+          <div class="glass-card">
+            <div class="section-header compact">
+              <div class="icon-box"><i data-lucide="medal"></i></div>
+              <h3>Machine Ranking</h3>
+            </div>
+            <div class="mini-table-wrap">
+              <table class="mini-table">
+                <thead><tr><th>เครื่องจักร</th><th>Priority</th><th>เหตุผล</th></tr></thead>
+                <tbody id="performanceRankingTable"><tr class="empty-row"><td colspan="3">ไม่พบข้อมูล</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="glass-card">
+            <div class="section-header compact">
+              <div class="icon-box"><i data-lucide="repeat"></i></div>
+              <h3>Repeated Failure Watch</h3>
+            </div>
+            <div class="mini-table-wrap">
+              <table class="mini-table">
+                <thead><tr><th>เครื่องจักร</th><th>ปัญหา</th><th>ซ้ำ</th></tr></thead>
+                <tbody id="performanceRepeatTable"><tr class="empty-row"><td colspan="3">ไม่พบข้อมูล</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -413,37 +604,41 @@
           <div class="glass-card">
             <div class="section-header compact">
               <div class="icon-box"><i data-lucide="target"></i></div>
-              <h3>Top 5 จุดที่เสียบ่อย</h3>
+              <h3>Target Check</h3>
             </div>
-            <div class="mini-table-wrap">
-              <table class="mini-table">
-                <thead>
-                  <tr>
-                    <th>จุดที่เสีย</th>
-                    <th>จำนวนครั้ง</th>
-                  </tr>
-                </thead>
-                <tbody id="topPointTable"></tbody>
-              </table>
+            <div class="target-check-list" id="targetCheckList">
+              <div class="target-row">ยังไม่มีข้อมูล</div>
             </div>
           </div>
+        </section>
 
-          <div class="glass-card">
-            <div class="section-header compact">
-              <div class="icon-box"><i data-lucide="clock-3"></i></div>
-              <h3>Top 5 เครื่องที่ Downtime สูงสุด</h3>
-            </div>
-            <div class="mini-table-wrap">
-              <table class="mini-table">
-                <thead>
-                  <tr>
-                    <th>เครื่องจักร</th>
-                    <th>Downtime</th>
-                  </tr>
-                </thead>
-                <tbody id="topMachineDowntimeTable"></tbody>
-              </table>
-            </div>
+        <section class="glass-card">
+          <div class="section-header compact">
+            <div class="icon-box"><i data-lucide="table-2"></i></div>
+            <h3>ตารางประสิทธิภาพรายเครื่อง</h3>
+          </div>
+          <div class="table-wrapper performance-table-wrapper">
+            <table class="history-table performance-table">
+              <thead>
+                <tr>
+                  <th>เครื่องจักร</th>
+                  <th>หมายเลขเครื่อง</th>
+                  <th>Planned Time</th>
+                  <th>ครั้งที่เสีย</th>
+                  <th>Downtime</th>
+                  <th>Uptime</th>
+                  <th>MTBF</th>
+                  <th>MTTR</th>
+                  <th>Availability</th>
+                  <th>จุดเสียหลัก</th>
+                  <th>อาการหลัก</th>
+                  <th>สถานะ</th>
+                </tr>
+              </thead>
+              <tbody id="performanceTableBody">
+                <tr><td colspan="12" class="empty-cell">ยังไม่มีข้อมูล</td></tr>
+              </tbody>
+            </table>
           </div>
         </section>
       </section>
@@ -454,17 +649,12 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3>รายละเอียดงานซ่อม</h3>
-        <button type="button" class="icon-btn" id="closeModalBtn">
+        <button type="button" class="icon-btn" id="closeModalBtn" aria-label="ปิดหน้าต่าง">
           <i data-lucide="x"></i>
         </button>
       </div>
       <div class="modal-body" id="modalContent"></div>
     </div>
   </div>
-
-  <script>
-    lucide.createIcons();
-  </script>
-  <script src="app.js"></script>
 </body>
 </html>
