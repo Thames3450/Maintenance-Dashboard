@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>MPR Smart Maintenance | KPI Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div class="app-shell">
+    <!-- ================= Top Navigation ================= -->
+    <nav class="top-nav">
+      <div class="brand">
+        <div class="brand-icon">
+          <i data-lucide="bar-chart-3"></i>
+        </div>
+        <div>
+          <div class="brand-title">MPR Smart Maintenance</div>
+          <div class="brand-subtitle">KPI Dashboard · Maintenance Performance</div>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <a href="index.html" class="nav-link">
+          <i data-lucide="file-edit"></i>
+          Repair Report
+        </a>
+
+        <button class="nav-link" id="refreshBtn" type="button">
+          <i data-lucide="refresh-cw"></i>
+          Refresh
+        </button>
+
+        <div class="system-status">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="systemStatus">กำลังเตรียมระบบ...</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ================= Hero ================= -->
+    <header class="hero">
+      <div class="hero-main">
+        <p class="eyebrow">
+          <i data-lucide="activity"></i>
+          Maintenance KPI Command Center
+        </p>
+        <h1>Dashboard วิเคราะห์ประสิทธิภาพงานซ่อมบำรุง</h1>
+        <p>
+          ติดตาม Downtime, MTTR, MTBF, Availability, ปัญหาซ้ำ และประสิทธิภาพรายเครื่องจากข้อมูล Repair Report จริง
+        </p>
+      </div>
+
+      <div class="hero-side">
+        <div class="hero-metric">
+          <span>Target MTTR</span>
+          <strong>≤ 37 min</strong>
+        </div>
+        <div class="hero-metric">
+          <span>Target MTBF</span>
+          <strong>≥ 100 hr</strong>
+        </div>
+        <div class="hero-metric">
+          <span>Availability</span>
+          <strong>≥ 80%</strong>
+        </div>
+      </div>
+    </header>
+
+    <!-- ================= Filter ================= -->
+    <section class="filter-card">
+      <div class="filter-title">
+        <div>
+          <h2>ตัวกรองข้อมูล</h2>
+          <p>เลือกช่วงวันที่ กะ และเครื่องจักรที่ต้องการวิเคราะห์</p>
+        </div>
+
+        <div class="quick-actions">
+          <button type="button" class="quick-btn" id="todayBtn">วันนี้</button>
+          <button type="button" class="quick-btn" id="thisMonthBtn">เดือนนี้</button>
+          <button type="button" class="quick-btn" id="resetFilterBtn">ล้างตัวกรอง</button>
+        </div>
+      </div>
+
+      <div class="filter-grid">
+        <div class="field">
+          <label>ตั้งแต่วันที่</label>
+          <input type="date" id="fromDate" />
+        </div>
+
+        <div class="field">
+          <label>ถึงวันที่</label>
+          <input type="date" id="toDate" />
+        </div>
+
+        <div class="field">
+          <label>กะ</label>
+          <select id="shiftFilter">
+            <option value="">ทั้งหมด</option>
+            <option value="A">กะ A</option>
+            <option value="B">กะ B</option>
+            <option value="O">กะ O</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>เครื่องจักร</label>
+          <select id="machineFilter">
+            <option value="">ทั้งหมด</option>
+          </select>
+        </div>
+
+        <button class="btn primary" id="loadBtn" type="button">
+          <i data-lucide="search"></i>
+          วิเคราะห์ KPI
+        </button>
+      </div>
+    </section>
+
+    <!-- ================= Tabs ================= -->
+    <section class="tab-shell">
+      <button class="tab-btn active" type="button" data-tab="dashboardPanel">
+        <i data-lucide="layout-dashboard"></i>
+        Dashboard
+      </button>
+
+      <button class="tab-btn" type="button" data-tab="performancePanel">
+        <i data-lucide="activity"></i>
+        Performance
+      </button>
+    </section>
+
+    <!-- ================= Dashboard Panel ================= -->
+    <main id="dashboardPanel" class="tab-panel active dashboard-layout">
+      <div class="section-title">
+        <div>
+          <span>01</span>
+          <h2>Dashboard Overview</h2>
+        </div>
+        <p>ภาพรวมงานซ่อมและ Downtime ในช่วงวันที่เลือก</p>
+      </div>
+
+      <!-- KPI Summary -->
+      <section class="kpi-grid dashboard-kpi">
+        <div class="kpi-card">
+          <div class="kpi-icon blue"><i data-lucide="clipboard-list"></i></div>
+          <div>
+            <div class="kpi-label">จำนวนงานซ่อม</div>
+            <div class="kpi-value" id="totalJobs">0</div>
+            <div class="kpi-sub">รายการ</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon red"><i data-lucide="timer"></i></div>
+          <div>
+            <div class="kpi-label">Downtime รวม</div>
+            <div class="kpi-value" id="totalDowntime">0</div>
+            <div class="kpi-sub">นาที</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon amber"><i data-lucide="gauge"></i></div>
+          <div>
+            <div class="kpi-label">Downtime เฉลี่ย / ครั้ง</div>
+            <div class="kpi-value" id="avgDowntime">0</div>
+            <div class="kpi-sub">นาที</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon green"><i data-lucide="cpu"></i></div>
+          <div>
+            <div class="kpi-label">จำนวนเครื่องที่มีประวัติ</div>
+            <div class="kpi-value" id="activeMachines">0</div>
+            <div class="kpi-sub">เครื่อง</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon purple"><i data-lucide="triangle-alert"></i></div>
+          <div>
+            <div class="kpi-label">อาการที่เสียบ่อยสุด</div>
+            <div class="kpi-text" id="topProblemName">-</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon dark"><i data-lucide="map-pin"></i></div>
+          <div>
+            <div class="kpi-label">จุดที่เสียบ่อยสุด</div>
+            <div class="kpi-text" id="topAreaName">-</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- KPI Focus -->
+      <section class="panel">
+        <div class="panel-head">
+          <div class="head-icon"><i data-lucide="target"></i></div>
+          <div>
+            <h2>KPI Focus Summary</h2>
+            <p>สรุปจุดที่ควรโฟกัสจากข้อมูลจริงในช่วงวันที่เลือก</p>
+          </div>
+        </div>
+
+        <div class="focus-grid">
+          <div class="focus-card danger">
+            <div class="focus-title">เครื่องจักรที่ Downtime สูงสุด</div>
+            <strong id="focusMachine">-</strong>
+            <p id="focusMachineDetail">-</p>
+          </div>
+
+          <div class="focus-card warning">
+            <div class="focus-title">อาการที่เกิดบ่อยสุด</div>
+            <strong id="focusProblem">-</strong>
+            <p id="focusProblemDetail">-</p>
+          </div>
+
+          <div class="focus-card blue">
+            <div class="focus-title">จุดเสียที่เกิดบ่อยสุด</div>
+            <strong id="focusArea">-</strong>
+            <p id="focusAreaDetail">-</p>
+          </div>
+
+          <div class="focus-card success">
+            <div class="focus-title">กะที่มี Downtime สูงสุด</div>
+            <strong id="focusShift">-</strong>
+            <p id="focusShiftDetail">-</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-title">
+        <div>
+          <span>02</span>
+          <h2>Downtime Analysis</h2>
+        </div>
+        <p>กราฟวิเคราะห์ Downtime เครื่องจักร จุดเสีย และแนวโน้มรายวัน</p>
+      </div>
+
+      <!-- Charts -->
+      <section class="chart-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="bar-chart-3"></i></div>
+            <div>
+              <h2>Downtime ตามเครื่องจักร</h2>
+              <p>เครื่องจักรที่สร้าง Downtime สูงสุด</p>
+            </div>
+          </div>
+          <div class="chart-box">
+            <canvas id="downtimeByMachineChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="map"></i></div>
+            <div>
+              <h2>Top จุดเสียบ่อย</h2>
+              <p>จุดเสียที่พบมากที่สุด</p>
+            </div>
+          </div>
+          <div class="chart-box">
+            <canvas id="topAreaChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel large">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="line-chart"></i></div>
+            <div>
+              <h2>แนวโน้ม Downtime รายวัน</h2>
+              <p>ดูแนวโน้ม Downtime ตามวันที่ซ่อม</p>
+            </div>
+          </div>
+          <div class="chart-box large">
+            <canvas id="dailyDowntimeChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="pie-chart"></i></div>
+            <div>
+              <h2>ประเภทงานเสีย</h2>
+              <p>แบ่งตาม Breakdown Type</p>
+            </div>
+          </div>
+          <div class="chart-box">
+            <canvas id="breakdownTypeChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="flame"></i></div>
+            <div>
+              <h2>Top อาการที่เสีย</h2>
+              <p>อาการเสียที่พบมากที่สุด</p>
+            </div>
+          </div>
+          <div class="chart-box">
+            <canvas id="topProblemChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-title">
+        <div>
+          <span>03</span>
+          <h2>Top Ranking</h2>
+        </div>
+        <p>ตาราง Top 5 สำหรับนำไปวางแผน PM และติดตามปัญหาซ้ำ</p>
+      </div>
+
+      <!-- Ranking Tables -->
+      <section class="rank-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="list"></i></div>
+            <div>
+              <h2>Top 5 อาการที่เสียบ่อย</h2>
+              <p>เรียงตามจำนวนครั้ง</p>
+            </div>
+          </div>
+          <div id="topProblemTable" class="simple-table"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="map-pin"></i></div>
+            <div>
+              <h2>Top 5 จุดที่เสียบ่อย</h2>
+              <p>เรียงตามจำนวนครั้ง</p>
+            </div>
+          </div>
+          <div id="topAreaTable" class="simple-table"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="timer"></i></div>
+            <div>
+              <h2>Top 5 Downtime สูงสุด</h2>
+              <p>เรียงตาม Downtime รวม</p>
+            </div>
+          </div>
+          <div id="topDowntimeTable" class="simple-table"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ================= Performance Panel ================= -->
+    <main id="performancePanel" class="tab-panel dashboard-layout">
+      <div class="section-title">
+        <div>
+          <span>01</span>
+          <h2>Performance Center</h2>
+        </div>
+        <p>วิเคราะห์ Availability, MTBF, MTTR และประสิทธิภาพรายเครื่อง</p>
+      </div>
+
+      <!-- Performance Center -->
+      <section class="performance-center">
+        <div class="performance-grid">
+          <div class="field">
+            <label>Planned Time ของเครื่อง (ชั่วโมง)</label>
+            <input type="number" id="plannedTimeInput" placeholder="ปล่อยว่าง = 24 ชม. × จำนวนวัน" />
+          </div>
+
+          <div class="field">
+            <label>Target Availability (%)</label>
+            <input type="number" id="targetAvailabilityInput" value="80" />
+          </div>
+
+          <div class="field">
+            <label>Target MTBF (ชั่วโมง)</label>
+            <input type="number" id="targetMtbfInput" value="100" />
+          </div>
+
+          <div class="field">
+            <label>Target MTTR (นาที)</label>
+            <input type="number" id="targetMttrInput" value="37" />
+          </div>
+        </div>
+
+        <div class="performance-note" id="plannedTimeText">
+          ช่วงวันที่เลือกมี 0 วัน × 24 ชั่วโมง = 0 ชั่วโมง/เครื่อง
+        </div>
+      </section>
+
+      <!-- Performance KPI Cards -->
+      <section class="kpi-grid performance-kpi">
+        <div class="kpi-card">
+          <div class="kpi-icon green"><i data-lucide="check-circle"></i></div>
+          <div>
+            <div class="kpi-label">Availability เฉลี่ย</div>
+            <div class="kpi-value" id="avgAvailability">0%</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon blue"><i data-lucide="clock-3"></i></div>
+          <div>
+            <div class="kpi-label">MTBF เฉลี่ย</div>
+            <div class="kpi-value" id="avgMtbf">0 ชม.</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon amber"><i data-lucide="wrench"></i></div>
+          <div>
+            <div class="kpi-label">MTTR เฉลี่ย</div>
+            <div class="kpi-value" id="avgMttr">0 นาที</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon red"><i data-lucide="octagon-alert"></i></div>
+          <div>
+            <div class="kpi-label">จำนวนครั้งที่เสีย</div>
+            <div class="kpi-value" id="totalFailures">0</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon purple"><i data-lucide="clock"></i></div>
+          <div>
+            <div class="kpi-label">Downtime รวม</div>
+            <div class="kpi-value" id="downtimeHours">0 ชม.</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon dark"><i data-lucide="triangle-alert"></i></div>
+          <div>
+            <div class="kpi-label">เครื่องที่ควรโฟกัส</div>
+            <div class="kpi-text" id="focusMachinePerf">-</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Target Compare -->
+      <section class="panel">
+        <div class="panel-head">
+          <div class="head-icon"><i data-lucide="sliders-horizontal"></i></div>
+          <div>
+            <h2>KPI Target Compare</h2>
+            <p>เปรียบเทียบค่า KPI กับเป้าหมายที่กำหนด</p>
+          </div>
+        </div>
+
+        <div class="target-grid">
+          <div class="target-card">
+            <div class="target-head">
+              <div>
+                <h3>Availability</h3>
+                <p>ยิ่งสูงยิ่งดี</p>
+              </div>
+              <strong id="availabilityTargetBadge">-</strong>
+            </div>
+            <div class="target-bar">
+              <div id="availabilityBar" class="target-fill"></div>
+            </div>
+            <div class="target-foot">
+              <span>Actual: <b id="availabilityActualText">0%</b></span>
+              <span>Target: <b id="availabilityTargetText">80%</b></span>
+            </div>
+          </div>
+
+          <div class="target-card">
+            <div class="target-head">
+              <div>
+                <h3>MTBF</h3>
+                <p>ยิ่งสูงยิ่งดี</p>
+              </div>
+              <strong id="mtbfTargetBadge">-</strong>
+            </div>
+            <div class="target-bar">
+              <div id="mtbfBar" class="target-fill"></div>
+            </div>
+            <div class="target-foot">
+              <span>Actual: <b id="mtbfActualText">0 ชม.</b></span>
+              <span>Target: <b id="mtbfTargetText">100 ชม.</b></span>
+            </div>
+          </div>
+
+          <div class="target-card">
+            <div class="target-head">
+              <div>
+                <h3>MTTR</h3>
+                <p>ยิ่งต่ำยิ่งดี</p>
+              </div>
+              <strong id="mttrTargetBadge">-</strong>
+            </div>
+            <div class="target-bar">
+              <div id="mttrBar" class="target-fill"></div>
+            </div>
+            <div class="target-foot">
+              <span>Actual: <b id="mttrActualText">0 นาที</b></span>
+              <span>Target: <b id="mttrTargetText">37 นาที</b></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- KPI Recommendation -->
+      <section class="panel">
+        <div class="panel-head">
+          <div class="head-icon"><i data-lucide="clipboard-check"></i></div>
+          <div>
+            <h2>Action Recommendation</h2>
+            <p>ข้อเสนอแนะจาก KPI เพื่อช่วยจัดลำดับงาน Maintenance</p>
+          </div>
+        </div>
+
+        <div class="action-grid" id="actionRecommendation">
+          <div class="action-item">
+            <h3>กำลังวิเคราะห์...</h3>
+            <p>ระบบจะสร้างข้อเสนอแนะหลังโหลดข้อมูล</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Performance Charts -->
+      <section class="chart-grid">
+        <div class="panel large">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="line-chart"></i></div>
+            <div>
+              <h2>Monthly Availability Trend</h2>
+              <p>แนวโน้ม Availability รายเดือน</p>
+            </div>
+          </div>
+          <div class="chart-box large">
+            <canvas id="monthlyAvailabilityChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel large">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="activity"></i></div>
+            <div>
+              <h2>Monthly MTBF / MTTR Trend</h2>
+              <p>แนวโน้ม MTBF และ MTTR รายเดือน</p>
+            </div>
+          </div>
+          <div class="chart-box large">
+            <canvas id="monthlyReliabilityChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel large">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="trending-down"></i></div>
+            <div>
+              <h2>Monthly Downtime + Failure Trend</h2>
+              <p>Downtime และจำนวนครั้งที่เสียรายเดือน</p>
+            </div>
+          </div>
+          <div class="chart-box large">
+            <canvas id="monthlyDowntimeFailureChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel large">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="bar-chart-4"></i></div>
+            <div>
+              <h2>Pareto: อาการเสียที่สร้าง Downtime สูงสุด</h2>
+              <p>ใช้ดูปัญหาหลักที่ควรนำไปทำ PM/RCA ก่อน</p>
+            </div>
+          </div>
+          <div class="chart-box large">
+            <canvas id="paretoProblemChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="wrench"></i></div>
+            <div>
+              <h2>MTTR ตามเครื่องจักร</h2>
+              <p>เวลาเฉลี่ยในการซ่อมรายเครื่อง</p>
+            </div>
+          </div>
+          <div class="chart-box">
+            <canvas id="mttrByMachineChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="gauge"></i></div>
+            <div>
+              <h2>Availability ตามเครื่องจักร</h2>
+              <p>ความพร้อมใช้งานรายเครื่อง</p>
+            </div>
+          </div>
+          <div class="chart-box">
+            <canvas id="availabilityByMachineChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="head-icon"><i data-lucide="clock-3"></i></div>
+            <div>
+              <h2>MTBF ตามเครื่องจักร</h2>
+              <p>ชั่วโมงเฉลี่ยก่อนเสียซ้ำรายเครื่อง</p>
+            </div>
+          </div>
+          <div class="chart-box">
+            <canvas id="mtbfByMachineChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Machine Table -->
+      <section class="panel">
+        <div class="panel-head">
+          <div class="head-icon"><i data-lucide="table-2"></i></div>
+          <div>
+            <h2>ตารางประสิทธิภาพรายเครื่อง</h2>
+            <p>สรุป Availability, MTBF, MTTR, Downtime และสถานะรายเครื่อง</p>
+          </div>
+        </div>
+
+        <div class="table-wrap machine-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>เครื่องจักร</th>
+                <th>หมายเลขเครื่อง</th>
+                <th>Planned Time</th>
+                <th>ครั้งที่เสีย</th>
+                <th>Downtime</th>
+                <th>Uptime</th>
+                <th>MTBF</th>
+                <th>MTTR</th>
+                <th>Availability</th>
+                <th>จุดเสียหลัก</th>
+                <th>อาการหลัก</th>
+                <th>สถานะ</th>
+              </tr>
+            </thead>
+            <tbody id="machinePerformanceBody">
+              <tr>
+                <td colspan="12" class="empty">กำลังโหลดข้อมูล...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
