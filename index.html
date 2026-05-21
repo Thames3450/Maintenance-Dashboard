@@ -35,6 +35,11 @@
       </div>
 
       <div class="nav-actions">
+        <a href="index.html" class="nav-link">
+          <i data-lucide="file-edit"></i>
+          Repair Report
+        </a>
+
         <button class="nav-link" id="refreshBtn" type="button">
           <i data-lucide="refresh-cw"></i>
           Refresh
@@ -146,7 +151,7 @@
           <span>01</span>
           <h2>Dashboard Overview</h2>
         </div>
-        <p>ภาพรวมงานซ่อมและ Downtime ในช่วงวันที่เลือก</p>
+        <p>ภาพรวมเฉพาะงานเสียจริง โดยแยกงาน TPM/PM ออกจาก Breakdown Downtime</p>
       </div>
 
       <!-- KPI Summary -->
@@ -154,7 +159,7 @@
         <div class="kpi-card">
           <div class="kpi-icon blue"><i data-lucide="clipboard-list"></i></div>
           <div>
-            <div class="kpi-label">จำนวนงานซ่อม</div>
+            <div class="kpi-label">จำนวนงานเสียจริง</div>
             <div class="kpi-value" id="totalJobs">0</div>
             <div class="kpi-sub">รายการ</div>
           </div>
@@ -163,7 +168,7 @@
         <div class="kpi-card">
           <div class="kpi-icon red"><i data-lucide="timer"></i></div>
           <div>
-            <div class="kpi-label">Downtime รวม</div>
+            <div class="kpi-label">Breakdown Downtime รวม</div>
             <div class="kpi-value" id="totalDowntime">0</div>
             <div class="kpi-sub">นาที</div>
           </div>
@@ -200,6 +205,43 @@
           <div>
             <div class="kpi-label">จุดที่เสียบ่อยสุด</div>
             <div class="kpi-text" id="topAreaName">-</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TPM / PM Summary -->
+      <section class="pm-tpm-summary" id="pmTpmSummarySection">
+        <div class="pm-tpm-head">
+          <div>
+            <h2>TPM / PM Activity Summary</h2>
+            <p>แยกงาน TPM/PM ออกจาก Breakdown Downtime เพื่อไม่ให้ KPI เครื่องเสียเพี้ยน</p>
+          </div>
+          <span class="pm-tpm-badge">Preventive Work</span>
+        </div>
+
+        <div class="pm-tpm-grid">
+          <div class="pm-tpm-card">
+            <span>จำนวนงาน TPM/PM</span>
+            <strong id="pmTpmJobs">0</strong>
+            <small>รายการที่ถูกแยกออกจาก Breakdown</small>
+          </div>
+
+          <div class="pm-tpm-card">
+            <span>เวลางาน TPM/PM รวม</span>
+            <strong id="pmTpmTime">0</strong>
+            <small>นาที</small>
+          </div>
+
+          <div class="pm-tpm-card">
+            <span>เครื่องที่มี TPM/PM มากสุด</span>
+            <strong id="pmTpmTopMachine">-</strong>
+            <small id="pmTpmTopMachineDetail">-</small>
+          </div>
+
+          <div class="pm-tpm-card">
+            <span>หัวข้องาน TPM/PM มากสุด</span>
+            <strong id="pmTpmTopWork">-</strong>
+            <small id="pmTpmTopWorkDetail">-</small>
           </div>
         </div>
       </section>
@@ -438,7 +480,7 @@
         <div class="kpi-card">
           <div class="kpi-icon purple"><i data-lucide="clock"></i></div>
           <div>
-            <div class="kpi-label">Downtime รวม</div>
+            <div class="kpi-label">Breakdown Downtime รวม</div>
             <div class="kpi-value" id="downtimeHours">0 ชม.</div>
           </div>
         </div>
