@@ -35,8 +35,10 @@ html {
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Kanit", sans-serif;
+  font-family: "Prompt", "Kanit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--text);
+  line-height: 1.55;
+  letter-spacing: -0.01em;
   background:
     radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 28%),
     radial-gradient(circle at bottom right, rgba(20, 184, 166, 0.08), transparent 32%),
@@ -92,8 +94,10 @@ body {
 
 .brand-subtitle {
   margin-top: 2px;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: var(--muted);
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 .nav-actions {
@@ -434,7 +438,40 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 14px;
-  border-bottom: 4px solid #14b8a6;
+  border-bottom: none;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+}
+
+.kpi-card-downtime {
+  border-color: #fecaca;
+  background: linear-gradient(180deg, #fff7f7 0%, #ffffff 100%);
+  box-shadow: 0 14px 34px rgba(239, 68, 68, 0.10);
+}
+
+.kpi-card-downtime .kpi-label,
+.kpi-card-downtime .kpi-sub {
+  color: #7f1d1d;
+}
+
+.kpi-card-downtime .kpi-value {
+  color: #dc2626;
+}
+
+.kpi-card-downtime-soft {
+  border-color: #fde68a;
+  background: linear-gradient(180deg, #fffaf0 0%, #ffffff 100%);
+}
+
+.kpi-card-downtime-soft .kpi-value {
+  color: #d97706;
 }
 
 .kpi-icon {
@@ -456,22 +493,25 @@ select:focus {
 .kpi-label {
   color: var(--muted);
   font-size: 0.84rem;
-  font-weight: 600;
-  line-height: 1.35;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
 }
 
 .kpi-value {
-  margin-top: 4px;
+  margin-top: 6px;
   color: #0f172a;
-  font-size: 1.45rem;
-  font-weight: 700;
-  line-height: 1.15;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
 }
 
 .kpi-sub {
-  margin-top: 3px;
+  margin-top: 4px;
   color: var(--muted-2);
-  font-size: 0.78rem;
+  font-size: 0.79rem;
+  font-weight: 400;
 }
 
 .kpi-text {
@@ -1123,7 +1163,7 @@ body {
   background: #e0f2fe;
   color: #0369a1;
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -1142,7 +1182,7 @@ body {
 
 .pm-tpm-card span {
   display: block;
-  color: #64748b;
+  color: #3f4041;
   font-size: 0.82rem;
   font-weight: 600;
   line-height: 1.35;
@@ -1151,9 +1191,9 @@ body {
 .pm-tpm-card strong {
   display: block;
   margin-top: 7px;
-  color: #0f172a;
+  color: #2e7c45;
   font-size: 1.25rem;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
@@ -1189,4 +1229,500 @@ body {
   .pm-tpm-card {
     padding: 14px;
   }
+}
+
+
+/* ================= Print Dashboard Report - Safe Patch ================= */
+
+.print-report-header {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html,
+  body {
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  body {
+    font-size: 10px !important;
+  }
+
+  .app-shell {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .top-nav,
+  .hero,
+  .filter-card,
+  .tab-shell,
+  .toast,
+  .quick-actions,
+  .print-report-btn {
+    display: none !important;
+  }
+
+  .print-report-header {
+    display: grid !important;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 12px;
+    align-items: start;
+    padding: 0 0 8px;
+    margin-bottom: 8px;
+    border-bottom: 2px solid #0f172a;
+    page-break-after: avoid;
+  }
+
+  .print-company {
+    font-size: 12px;
+    font-weight: 700;
+    color: #2563eb;
+    margin-bottom: 2px;
+  }
+
+  .print-report-header h1 {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.2;
+    color: #0f172a;
+  }
+
+  .print-report-header p {
+    margin: 4px 0 0;
+    color: #475569;
+    font-weight: 600;
+    font-size: 11px;
+  }
+
+  .print-meta-box {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border: 1px solid #0f172a;
+  }
+
+  .print-meta-box > div {
+    min-height: 38px;
+    padding: 6px 8px;
+    border-right: 1px solid #0f172a;
+  }
+
+  .print-meta-box > div:last-child {
+    border-right: none;
+  }
+
+  .print-meta-box span {
+    display: block;
+    font-size: 8px;
+    color: #64748b;
+    margin-bottom: 2px;
+  }
+
+  .print-meta-box strong {
+    display: block;
+    font-size: 9px;
+    line-height: 1.3;
+    color: #0f172a;
+  }
+
+  .tab-panel {
+    display: none !important;
+  }
+
+  .tab-panel.active {
+    display: block !important;
+  }
+
+  .dashboard-layout {
+    display: block !important;
+  }
+
+  .section-title {
+    margin: 7px 0 6px !important;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .section-title span {
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 8px !important;
+    font-size: 9px !important;
+  }
+
+  .section-title h2 {
+    font-size: 13px !important;
+  }
+
+  .section-title p {
+    font-size: 9px !important;
+  }
+
+  .kpi-grid,
+  .dashboard-kpi,
+  .performance-kpi {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 7px !important;
+    margin-bottom: 8px !important;
+    page-break-inside: avoid;
+  }
+
+  .kpi-card {
+    min-height: 68px !important;
+    padding: 8px !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    border: 1px solid #dbe3ef !important;
+    gap: 7px !important;
+  }
+
+  .kpi-icon {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 10px !important;
+  }
+
+  .kpi-icon svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  .kpi-label,
+  .kpi-sub {
+    font-size: 8px !important;
+    line-height: 1.2 !important;
+  }
+
+  .kpi-value {
+    font-size: 15px !important;
+    line-height: 1.1 !important;
+  }
+
+  .kpi-text {
+    font-size: 9px !important;
+    line-height: 1.25 !important;
+  }
+
+  .pm-tpm-summary,
+  .focus-grid,
+  .rank-grid,
+  .chart-grid,
+  .target-grid,
+  .performance-grid,
+  .action-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 7px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .pm-tpm-summary,
+  .panel,
+  .performance-center,
+  .focus-card,
+  .action-item,
+  .target-card,
+  .kpi-card,
+  .pm-tpm-card {
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .pm-tpm-summary,
+  .panel,
+  .performance-center {
+    padding: 10px !important;
+    border-radius: 12px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .pm-tpm-head,
+  .panel-head {
+    margin-bottom: 7px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .head-icon {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 9px !important;
+  }
+
+  .head-icon svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  .panel-head h2,
+  .pm-tpm-head h2 {
+    font-size: 11px !important;
+  }
+
+  .panel-head p,
+  .pm-tpm-head p,
+  .focus-card p,
+  .action-item p {
+    font-size: 8px !important;
+    line-height: 1.25 !important;
+  }
+
+  .pm-tpm-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .pm-tpm-card {
+    padding: 8px !important;
+    border-radius: 10px !important;
+  }
+
+  .pm-tpm-card span,
+  .pm-tpm-card small {
+    font-size: 8px !important;
+  }
+
+  .pm-tpm-card strong {
+    font-size: 12px !important;
+  }
+
+  .focus-card,
+  .action-item,
+  .target-card {
+    padding: 8px !important;
+    border-radius: 10px !important;
+  }
+
+  .focus-title,
+  .target-head p,
+  .target-foot {
+    font-size: 8px !important;
+  }
+
+  .focus-card strong,
+  .action-item h3,
+  .target-head h3 {
+    font-size: 10px !important;
+  }
+
+  .chart-box {
+    height: 190px !important;
+  }
+
+  .chart-box.large {
+    height: 220px !important;
+  }
+
+  .panel.large {
+    grid-column: auto !important;
+  }
+
+  .simple-table,
+  .table-wrap {
+    border-radius: 10px !important;
+  }
+
+  .simple-row {
+    padding: 7px 8px !important;
+    font-size: 8px !important;
+  }
+
+  .table-wrap {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  table {
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: 8px !important;
+  }
+
+  thead th,
+  tbody td {
+    padding: 5px 6px !important;
+    font-size: 7.5px !important;
+    white-space: normal !important;
+  }
+
+  .performance-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+
+  .performance-grid .field label,
+  .performance-grid input {
+    font-size: 8px !important;
+  }
+
+  .performance-grid input {
+    min-height: 28px !important;
+    border-radius: 8px !important;
+    padding: 0 7px !important;
+  }
+
+  .performance-note {
+    padding: 7px 8px !important;
+    border-radius: 8px !important;
+    font-size: 8px !important;
+    margin-top: 6px !important;
+  }
+}
+
+
+/* ================= Print Report Snapshot / Presentation Patch ================= */
+.print-executive-summary,
+.print-chart-image {
+  display: none;
+}
+
+@media print {
+  .print-executive-summary {
+    display: block !important;
+    margin: 0 0 8px !important;
+    padding: 8px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-summary-head {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    margin-bottom: 7px !important;
+    padding-bottom: 6px !important;
+    border-bottom: 1px solid #dbe3ef !important;
+  }
+
+  .print-summary-head h2 {
+    margin: 0 !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+    color: #0f172a !important;
+  }
+
+  .print-summary-head p {
+    margin: 3px 0 0 !important;
+    font-size: 8.5px !important;
+    color: #475569 !important;
+  }
+
+  .print-summary-head span {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 24px !important;
+    padding: 0 9px !important;
+    border-radius: 999px !important;
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    font-size: 8px !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+  }
+
+  .print-summary-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .print-summary-card {
+    padding: 7px 8px !important;
+    border: 1px solid #dbe3ef !important;
+    border-radius: 10px !important;
+    background: #f8fafc !important;
+  }
+
+  .print-summary-card span {
+    display: block !important;
+    margin-bottom: 3px !important;
+    color: #64748b !important;
+    font-size: 7.8px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+  }
+
+  .print-summary-card strong {
+    display: block !important;
+    color: #0f172a !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+  }
+
+  .chart-box canvas {
+    display: none !important;
+  }
+
+  .print-chart-image {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+  }
+
+  .chart-box {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 185px !important;
+    height: 185px !important;
+  }
+
+  .chart-box.large {
+    min-height: 210px !important;
+    height: 210px !important;
+  }
+
+  .panel {
+    overflow: hidden !important;
+  }
+
+  .chart-grid .panel,
+  .rank-grid .panel,
+  .panel.large {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .section-title {
+    padding-top: 2px !important;
+  }
+
+  .simple-row,
+  .focus-card,
+  .action-item,
+  .target-card,
+  .pm-tpm-card {
+    background: #ffffff !important;
+  }
+}
+
+
+.card p,
+.panel p,
+.focus-item p,
+.summary-note,
+.table-wrap td,
+.table-wrap th {
+  letter-spacing: -0.01em;
 }
