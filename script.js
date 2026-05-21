@@ -7,6 +7,9 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const state = {
   rows: [],
   filteredRows: [],
+  allFilteredRows: [],
+  breakdownRows: [],
+  pmTpmRows: [],
   charts: {}
 };
 
@@ -46,6 +49,14 @@ function cacheElements() {
     activeMachines: document.getElementById("activeMachines"),
     topProblemName: document.getElementById("topProblemName"),
     topAreaName: document.getElementById("topAreaName"),
+
+    pmTpmSummarySection: document.getElementById("pmTpmSummarySection"),
+    pmTpmJobs: document.getElementById("pmTpmJobs"),
+    pmTpmTime: document.getElementById("pmTpmTime"),
+    pmTpmTopMachine: document.getElementById("pmTpmTopMachine"),
+    pmTpmTopMachineDetail: document.getElementById("pmTpmTopMachineDetail"),
+    pmTpmTopWork: document.getElementById("pmTpmTopWork"),
+    pmTpmTopWorkDetail: document.getElementById("pmTpmTopWorkDetail"),
 
     focusMachine: document.getElementById("focusMachine"),
     focusMachineDetail: document.getElementById("focusMachineDetail"),
@@ -205,11 +216,17 @@ function applyFiltersAndRender() {
   const shift = els.shiftFilter?.value || "";
   const machine = els.machineFilter?.value || "";
 
-  state.filteredRows = state.rows.filter(row => {
+  state.allFilteredRows = state.rows.filter(row => {
     if (shift && row.shift !== shift) return false;
     if (machine && row.machine_name !== machine) return false;
     return true;
   });
+
+  state.breakdownRows = state.allFilteredRows.filter(row => !isPmOrTpmWork(row));
+  state.pmTpmRows = state.allFilteredRows.filter(row => isPmOrTpmWork(row));
+
+  // ค่าเดิมของเว็บให้หมายถึง Breakdown เท่านั้น เพื่อให้ KPI / MTTR / MTBF / Pareto ไม่เพี้ยน
+  state.filteredRows = state.breakdownRows;
 
   renderAll();
 }
@@ -217,11 +234,13 @@ function applyFiltersAndRender() {
 /* ================= Render All ================= */
 
 function renderAll() {
-  const rows = state.filteredRows;
+  const rows = state.breakdownRows || state.filteredRows || [];
+  const pmRows = state.pmTpmRows || [];
 
   updatePlannedTimeText();
 
   renderDashboardCards(rows);
+  renderPmTpmSummary(pmRows);
   renderFocusSummary(rows);
   renderDashboardCharts(rows);
   renderRankingTables(rows);
@@ -233,6 +252,104 @@ function renderAll() {
   renderMachinePerformance(rows);
 
   refreshIcons();
+}
+
+
+/* ================= Work Type Split: Breakdown vs TPM/PM ================= */
+
+function isPmOrTpmWork(row) {
+  const fields = [
+    row.problem_name,
+    row.problem,
+    row.machine_trouble,
+    row.cause_name,
+    row.action_name,
+    row.breakdown_type,
+    row.classification,
+    row.repair_type,
+    row.work_type,
+    row.job_type,
+    row.pm_type,
+    row.remark,
+    row.result_after_repair,
+    row.repair_result
+  ];
+
+  const text = fields
+    .map(value => String(value || "").toLowerCase())
+    .join(" ")
+    .replace(/\s+/g, " ");
+
+  const thaiPmKeywords = [
+    "งานtpm",
+    "งาน tpm",
+    "งานpm",
+    "งาน pm",
+    "tpm/pm",
+    "pm/tpm",
+    "บำรุงรักษา",
+    "บํารุงรักษา",
+    "ตรวจเช็ค",
+    "ตรวจเช็ก",
+    "เช็คสภาพ",
+    "เช็กสภาพ",
+    "ทำความสะอาดเครื่อง",
+    "ล้างเครื่อง",
+    "หล่อลื่น",
+    "อัดจารบี",
+    "ตามแผน",
+    "แผนpm",
+    "แผน pm"
+  ];
+
+  if (thaiPmKeywords.some(keyword => text.includes(keyword))) return true;
+
+  // จับคำ PM / TPM แบบเป็นคำ ไม่ให้ไปโดนคำอื่นโดยไม่ตั้งใจ
+  if (/(^|[^a-z0-9])(tpm|pm|p\.m\.)([^a-z0-9]|$)/i.test(text)) return true;
+  if (/(^|[^a-z0-9])(preventive|planned maintenance|maintenance plan|periodic inspection)([^a-z0-9]|$)/i.test(text)) return true;
+
+  return false;
+}
+
+function getBreakdownRows(rows) {
+  return (rows || []).filter(row => !isPmOrTpmWork(row));
+}
+
+function getPmTpmRows(rows) {
+  return (rows || []).filter(row => isPmOrTpmWork(row));
+}
+
+function renderPmTpmSummary(rows) {
+  if (!els.pmTpmSummarySection) return;
+
+  const totalJobs = rows.length;
+  const totalTime = sumBy(rows, row => toNumber(row.loss_time_min));
+
+  const topMachine = topEntry(groupSum(
+    rows,
+    row => `${row.machine_name || "-"} | ${row.machine_no || "-"}`,
+    row => toNumber(row.loss_time_min)
+  ));
+
+  const topWork = topEntry(groupCount(rows, row => getPmTpmWorkName(row)));
+
+  els.pmTpmJobs.textContent = formatNumber(totalJobs);
+  els.pmTpmTime.textContent = formatNumber(totalTime);
+  els.pmTpmTopMachine.textContent = topMachine ? topMachine[0] : "-";
+  els.pmTpmTopMachineDetail.textContent = topMachine ? `${formatNumber(topMachine[1])} นาที` : "ไม่มีงาน TPM/PM ในช่วงที่เลือก";
+  els.pmTpmTopWork.textContent = topWork ? topWork[0] : "-";
+  els.pmTpmTopWorkDetail.textContent = topWork ? `${formatNumber(topWork[1])} ครั้ง` : "ไม่มีงาน TPM/PM ในช่วงที่เลือก";
+
+  els.pmTpmSummarySection.classList.toggle("is-empty", totalJobs === 0);
+}
+
+function getPmTpmWorkName(row) {
+  return clean(row.problem_name) ||
+    clean(row.action_name) ||
+    clean(row.breakdown_type) ||
+    clean(row.classification) ||
+    clean(row.remark) ||
+    "TPM/PM";
 }
 
 /* ================= Dashboard ================= */
@@ -272,7 +389,7 @@ function renderFocusSummary(rows) {
   const topShift = topEntry(shiftDowntime);
 
   els.focusMachine.textContent = topMachine ? topMachine[0] : "-";
-  els.focusMachineDetail.textContent = topMachine ? `Downtime รวม ${formatNumber(topMachine[1])} นาที` : "-";
+  els.focusMachineDetail.textContent = topMachine ? `Breakdown Downtime รวม ${formatNumber(topMachine[1])} นาที` : "-";
 
   els.focusProblem.textContent = topProblem ? topProblem[0] : "-";
   els.focusProblemDetail.textContent = topProblem ? `พบทั้งหมด ${formatNumber(topProblem[1])} ครั้ง` : "-";
@@ -281,7 +398,7 @@ function renderFocusSummary(rows) {
   els.focusAreaDetail.textContent = topArea ? `พบทั้งหมด ${formatNumber(topArea[1])} ครั้ง` : "-";
 
   els.focusShift.textContent = topShift ? `กะ ${topShift[0]}` : "-";
-  els.focusShiftDetail.textContent = topShift ? `Downtime รวม ${formatNumber(topShift[1])} นาที` : "-";
+  els.focusShiftDetail.textContent = topShift ? `Breakdown Downtime รวม ${formatNumber(topShift[1])} นาที` : "-";
 }
 
 function renderDashboardCharts(rows) {
@@ -304,7 +421,7 @@ function renderDowntimeByMachine(rows) {
   createChart("downtimeByMachineChart", "bar",
     top.map(item => item[0]),
     top.map(item => item[1]),
-    "Downtime (นาที)",
+    "Breakdown Downtime (นาที)",
     "blue"
   );
 }
@@ -329,7 +446,7 @@ function renderDailyDowntimeChart(rows) {
   createChart("dailyDowntimeChart", "line",
     labels.map(formatDateShort),
     labels.map(label => grouped[label]),
-    "Downtime (นาที)",
+    "Breakdown Downtime (นาที)",
     "green"
   );
 }
@@ -613,7 +730,7 @@ function renderActionRecommendation(rows) {
 
     <div class="action-item ${highestDowntime.downtimeHr >= 1 ? "danger" : "good"}">
       <h3>Downtime Focus</h3>
-      <p>${escapeHtml(highestDowntime.machine_name)} | ${escapeHtml(highestDowntime.machine_no)} Downtime สูงสุด ${formatNumber(highestDowntime.downtimeHr, 1)} ชั่วโมง จาก ${highestDowntime.failureCount} ครั้ง</p>
+      <p>${escapeHtml(highestDowntime.machine_name)} | ${escapeHtml(highestDowntime.machine_no)} Breakdown Downtime สูงสุด ${formatNumber(highestDowntime.downtimeHr, 1)} ชั่วโมง จาก ${highestDowntime.failureCount} ครั้ง</p>
     </div>
 
     <div class="action-item ${lowestMtbf.mtbf < targets.mtbf ? "danger" : "good"}">
@@ -714,7 +831,7 @@ function renderMonthlyDowntimeFailure(rows) {
   createMixedChart("monthlyDowntimeFailureChart", labels, [
     {
       type: "bar",
-      label: "Downtime (ชม.)",
+      label: "Breakdown Downtime (ชม.)",
       data: data.map(item => item.downtimeHr),
       color: "#ef4444",
       yAxisID: "y"
@@ -942,7 +1059,7 @@ function createParetoChart(canvasId, labels, values, cumulativePercent) {
       datasets: [
         {
           type: "bar",
-          label: "Downtime (นาที)",
+          label: "Breakdown Downtime (นาที)",
           data: values,
           backgroundColor: "rgba(37, 99, 235, 0.72)",
           borderColor: "#2563eb",
