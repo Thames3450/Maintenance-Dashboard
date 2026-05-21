@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&display=swap"
     rel="stylesheet"
   >
 
@@ -45,12 +45,44 @@
           Refresh
         </button>
 
+        <button class="nav-link print-report-btn" id="printReportBtn" type="button">
+          <i data-lucide="printer"></i>
+          Print Report
+        </button>
+
         <div class="system-status">
           <span class="status-dot" id="statusDot"></span>
           <span id="systemStatus">กำลังเตรียมระบบ...</span>
         </div>
       </div>
     </nav>
+
+    <!-- ================= Print Report Header ================= -->
+    <section class="print-report-header" id="printReportHeader">
+      <div>
+        <div class="print-company">MPR Smart Maintenance</div>
+        <h1>Maintenance KPI Dashboard Report</h1>
+        <p id="printReportType">Dashboard Overview</p>
+      </div>
+
+      <div class="print-meta-box">
+        <div>
+          <span>Period</span>
+          <strong id="printReportPeriod">-</strong>
+        </div>
+        <div>
+          <span>Filter</span>
+          <strong id="printReportFilters">-</strong>
+        </div>
+        <div>
+          <span>Printed</span>
+          <strong id="printReportDate">-</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Print Executive Summary ================= -->
+    <section class="print-executive-summary" id="printExecutiveSummary"></section>
 
     <!-- ================= Hero ================= -->
     <header class="hero">
@@ -165,7 +197,7 @@
           </div>
         </div>
 
-        <div class="kpi-card">
+        <div class="kpi-card kpi-card-downtime">
           <div class="kpi-icon red"><i data-lucide="timer"></i></div>
           <div>
             <div class="kpi-label">Breakdown Downtime รวม</div>
@@ -174,7 +206,7 @@
           </div>
         </div>
 
-        <div class="kpi-card">
+        <div class="kpi-card kpi-card-downtime-soft">
           <div class="kpi-icon amber"><i data-lucide="gauge"></i></div>
           <div>
             <div class="kpi-label">Downtime เฉลี่ย / ครั้ง</div>
