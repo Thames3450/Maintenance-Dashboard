@@ -36,6 +36,11 @@ function cacheElements() {
     machineFilter: document.getElementById("machineFilter"),
     loadBtn: document.getElementById("loadBtn"),
     refreshBtn: document.getElementById("refreshBtn"),
+    printReportBtn: document.getElementById("printReportBtn"),
+    printReportType: document.getElementById("printReportType"),
+    printReportPeriod: document.getElementById("printReportPeriod"),
+    printReportFilters: document.getElementById("printReportFilters"),
+    printReportDate: document.getElementById("printReportDate"),
     todayBtn: document.getElementById("todayBtn"),
     thisMonthBtn: document.getElementById("thisMonthBtn"),
     resetFilterBtn: document.getElementById("resetFilterBtn"),
@@ -107,6 +112,7 @@ function cacheElements() {
 function bindEvents() {
   els.loadBtn?.addEventListener("click", loadDashboard);
   els.refreshBtn?.addEventListener("click", loadDashboard);
+  els.printReportBtn?.addEventListener("click", printDashboardReport);
 
   els.shiftFilter?.addEventListener("change", applyFiltersAndRender);
   els.machineFilter?.addEventListener("change", applyFiltersAndRender);
@@ -1200,6 +1206,182 @@ function getChartColor(key) {
   return colors[key] || colors.blue;
 }
 
+
+/* ================= Print Report ================= */
+
+async function printDashboardReport() {
+  updatePrintReportHeader();
+  renderPrintExecutiveSummary();
+
+  document.body.classList.add("is-printing-report");
+
+  try {
+    await preparePrintChartSnapshots();
+
+    window.addEventListener("afterprint", cleanupPrintReport, { once: true });
+
+    setTimeout(() => {
+      window.print();
+    }, 250);
+
+    setTimeout(cleanupPrintReport, 3500);
+  } catch (err) {
+    console.error("Print report error:", err);
+    cleanupPrintReport();
+    toast("เตรียมรายงานสำหรับปริ้นไม่สำเร็จ", "error");
+  }
+}
+
+function cleanupPrintReport() {
+  document.body.classList.remove("is-printing-report");
+  document.querySelectorAll(".print-chart-image").forEach(img => img.remove());
+
+  setTimeout(() => {
+    Object.values(state.charts).forEach(chart => {
+      chart?.resize?.();
+      chart?.update?.("none");
+    });
+  }, 80);
+}
+
+async function preparePrintChartSnapshots() {
+  document.querySelectorAll(".print-chart-image").forEach(img => img.remove());
+
+  Object.values(state.charts).forEach(chart => {
+    chart?.resize?.();
+    chart?.update?.("none");
+  });
+
+  await sleep(180);
+
+  const activePanel = document.querySelector(".tab-panel.active");
+  const canvases = activePanel ? [...activePanel.querySelectorAll("canvas")] : [];
+
+  const images = [];
+
+  canvases.forEach(canvas => {
+    try {
+      const src = canvas.toDataURL("image/png", 1);
+
+      if (!src || src.length < 200) return;
+
+      const img = document.createElement("img");
+      img.className = "print-chart-image";
+      img.alt = canvas.id || "chart";
+      img.src = src;
+      img.loading = "eager";
+      img.decoding = "sync";
+
+      canvas.insertAdjacentElement("afterend", img);
+      images.push(img);
+    } catch (err) {
+      console.warn("Cannot create print image for chart:", canvas.id, err);
+    }
+  });
+
+  await Promise.all(images.map(img => new Promise(resolve => {
+    if (img.complete) resolve();
+    else {
+      img.onload = resolve;
+      img.onerror = resolve;
+    }
+  })));
+}
+
+function renderPrintExecutiveSummary() {
+  let container = document.getElementById("printExecutiveSummary");
+
+  if (!container) {
+    container = document.createElement("section");
+    container.id = "printExecutiveSummary";
+    container.className = "print-executive-summary";
+    document.getElementById("printReportHeader")?.insertAdjacentElement("afterend", container);
+  }
+
+  const activeTab = [...(els.tabBtns || [])].find(btn => btn.classList.contains("active"));
+  const isPerformance = activeTab?.dataset?.tab === "performancePanel";
+
+  const summaryItems = isPerformance
+    ? [
+        ["Availability เฉลี่ย", els.avgAvailability?.textContent || "-"],
+        ["MTBF เฉลี่ย", els.avgMtbf?.textContent || "-"],
+        ["MTTR เฉลี่ย", els.avgMttr?.textContent || "-"],
+        ["จำนวนครั้งที่เสีย", els.totalFailures?.textContent || "-"],
+        ["Downtime รวม", els.downtimeHours?.textContent || "-"],
+        ["เครื่องที่ควรโฟกัส", els.focusMachinePerf?.textContent || "-"]
+      ]
+    : [
+        ["Breakdown Jobs", `${els.totalJobs?.textContent || "0"} รายการ`],
+        ["Breakdown Downtime", `${els.totalDowntime?.textContent || "0"} นาที`],
+        ["Avg Downtime / ครั้ง", `${els.avgDowntime?.textContent || "0"} นาที`],
+        ["Active Machines", `${els.activeMachines?.textContent || "0"} เครื่อง`],
+        ["Top Problem", els.topProblemName?.textContent || "-"],
+        ["Top Area", els.topAreaName?.textContent || "-"],
+        ["TPM/PM Jobs", `${els.pmTpmJobs?.textContent || "0"} รายการ`],
+        ["TPM/PM Time", `${els.pmTpmTime?.textContent || "0"} นาที`]
+      ];
+
+  const focusText = isPerformance
+    ? `Focus Machine: ${els.focusMachinePerf?.textContent || "-"}`
+    : `Focus: ${els.focusMachine?.textContent || "-"} / ${els.focusProblem?.textContent || "-"} / ${els.focusArea?.textContent || "-"}`;
+
+  container.innerHTML = `
+    <div class="print-summary-head">
+      <div>
+        <h2>Executive Summary</h2>
+        <p>${escapeHtml(focusText)}</p>
+      </div>
+      <span>${isPerformance ? "Performance KPI" : "Dashboard Overview"}</span>
+    </div>
+    <div class="print-summary-grid">
+      ${summaryItems.map(([label, value]) => `
+        <div class="print-summary-card">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function updatePrintReportHeader() {
+  const activeTab = [...(els.tabBtns || [])].find(btn => btn.classList.contains("active"));
+  const activeTabText = activeTab ? activeTab.textContent.trim().replace(/\s+/g, " ") : "Dashboard";
+
+  const fromText = els.fromDate?.value ? formatDateShort(els.fromDate.value) : "-";
+  const toText = els.toDate?.value ? formatDateShort(els.toDate.value) : "-";
+  const shiftText = els.shiftFilter?.value ? `Shift ${els.shiftFilter.value}` : "All Shifts";
+  const machineText = els.machineFilter?.value || "All Machines";
+
+  if (els.printReportType) {
+    els.printReportType.textContent = activeTabText.includes("Performance")
+      ? "Performance KPI Report"
+      : "Dashboard Overview Report";
+  }
+
+  if (els.printReportPeriod) {
+    els.printReportPeriod.textContent = `${fromText} - ${toText}`;
+  }
+
+  if (els.printReportFilters) {
+    els.printReportFilters.textContent = `${shiftText} / ${machineText}`;
+  }
+
+  if (els.printReportDate) {
+    els.printReportDate.textContent = new Date().toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 /* ================= Utility ================= */
 
 function setStatus(text, type) {
@@ -1339,6 +1521,733 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+
+function escapeHtmlWithBreaks(value) {
+  return escapeHtml(value || "-").replace(/\n/g, "<br>");
+}
+
 function refreshIcons() {
   if (window.lucide) lucide.createIcons();
+}
+/* =========================================================
+   Monthly Presentation Print Report
+   - Safe override: ไม่แก้ logic KPI เดิม
+   - เปิดหน้า Report แยกสำหรับพรีเซนรายเดือน
+========================================================= */
+
+async function printDashboardReport() {
+  try {
+    setStatus("กำลังเตรียมรายงานพร้อมรูปภาพ...", "warning");
+
+    const evidencePhotos = await loadRepairEvidencePhotosForReport();
+    const reportData = buildMonthlyPresentationReportData(evidencePhotos);
+    const reportHtml = buildMonthlyPresentationReportHtml(reportData);
+    const printWindow = window.open("", "_blank", "width=1280,height=900");
+
+    if (!printWindow) {
+      toast("Browser บล็อกหน้าต่างรายงาน กรุณาอนุญาต Popup", "warning");
+      setStatus("พร้อมใช้งาน", "success");
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(reportHtml);
+    printWindow.document.close();
+
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+      }, 850);
+    };
+
+    setStatus("พร้อมใช้งาน", "success");
+  } catch (err) {
+    console.error("Monthly report print error:", err);
+    setStatus("สร้างรายงานไม่สำเร็จ", "error");
+    toast("สร้างรายงานนำเสนอไม่สำเร็จ", "error");
+  }
+}
+
+async function loadRepairEvidencePhotosForReport() {
+  const breakdownRows = state.breakdownRows || state.filteredRows || [];
+
+  const candidateRows = [...breakdownRows]
+    .sort((a, b) => toNumber(b.loss_time_min) - toNumber(a.loss_time_min))
+    .slice(0, 80);
+
+  const ids = candidateRows.map(row => row.id).filter(Boolean);
+  const recordIds = candidateRows.map(row => row.record_id).filter(Boolean);
+
+  if (!ids.length && !recordIds.length) return [];
+
+  let images = [];
+
+  try {
+    if (ids.length) {
+      const { data, error } = await sb
+        .from("repair_images")
+        .select("*")
+        .in("repair_log_id", ids);
+
+      if (error) throw error;
+      images = data || [];
+    }
+  } catch (err) {
+    console.warn("Load repair_images by repair_log_id failed:", err);
+  }
+
+  if (!images.length && recordIds.length) {
+    try {
+      const { data, error } = await sb
+        .from("repair_images")
+        .select("*")
+        .in("record_id", recordIds);
+
+      if (error) throw error;
+      images = data || [];
+    } catch (err) {
+      console.warn("Load repair_images by record_id failed:", err);
+    }
+  }
+
+  if (!images.length) return [];
+
+  const rowMap = new Map();
+  candidateRows.forEach(row => {
+    if (row.id) rowMap.set(String(row.id), row);
+    if (row.record_id) rowMap.set(String(row.record_id), row);
+  });
+
+  const photos = images.map(img => {
+    const key = img.repair_log_id || img.repair_id || img.record_id || img.repair_log_record_id;
+    const row = rowMap.get(String(key));
+    const url = getRepairImageUrl(img);
+
+    if (!row || !url) return null;
+
+    return {
+      url,
+      imageType: img.image_type || img.type || "Repair Photo",
+      fileName: img.file_name || img.filename || "",
+      row,
+      downtime: toNumber(row.loss_time_min),
+      sortTime: new Date(row.repair_date || row.created_at || 0).getTime() || 0
+    };
+  }).filter(Boolean);
+
+  const seen = new Set();
+  return photos
+    .sort((a, b) => b.downtime - a.downtime || b.sortTime - a.sortTime)
+    .filter(photo => {
+      const key = `${photo.row.id || photo.row.record_id}|${photo.url}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 12);
+}
+
+function getRepairImageUrl(img) {
+  const directUrl = img.public_url || img.image_url || img.url || img.photo_url || img.file_url;
+  if (directUrl) return directUrl;
+
+  const path = img.file_path || img.path || img.storage_path;
+  if (!path) return "";
+
+  try {
+    return sb.storage.from("repair-images").getPublicUrl(path).data?.publicUrl || "";
+  } catch (err) {
+    console.warn("Cannot get public URL for repair image:", err);
+    return "";
+  }
+}
+
+function buildMonthlyPresentationReportData(evidencePhotos = []) {
+  const breakdownRows = state.breakdownRows || state.filteredRows || [];
+  const pmRows = state.pmTpmRows || [];
+  const allRows = state.allFilteredRows || state.rows || [];
+  const targets = getDashboardTargets();
+  const performance = calculateMachinePerformance(breakdownRows);
+
+  const downtimeMin = sumBy(breakdownRows, row => toNumber(row.loss_time_min));
+  const pmTimeMin = sumBy(pmRows, row => toNumber(row.loss_time_min));
+  const totalFailures = breakdownRows.length;
+  const activeMachines = new Set(breakdownRows.map(machineKey)).size;
+  const avgDowntime = totalFailures ? downtimeMin / totalFailures : 0;
+
+  const avgAvailability = performance.length ? average(performance.map(item => item.availability)) : 100;
+  const avgMtbf = performance.length ? average(performance.map(item => item.mtbf)) : getPlannedTimeHours();
+  const avgMttr = totalFailures ? downtimeMin / totalFailures : 0;
+
+  const topMachineDowntime = sortEntries(groupSum(
+    breakdownRows,
+    row => `${row.machine_name || "-"} | ${row.machine_no || "-"}`,
+    row => toNumber(row.loss_time_min)
+  )).slice(0, 5);
+
+  const topProblemCount = sortEntries(groupCount(
+    breakdownRows,
+    row => row.problem_name || "ไม่ระบุ"
+  )).slice(0, 5);
+
+  const topAreaCount = sortEntries(groupCount(
+    breakdownRows,
+    row => row.area_point_name || "ไม่ระบุ"
+  )).slice(0, 5);
+
+  const shiftDowntime = sortEntries(groupSum(
+    breakdownRows,
+    row => row.shift ? `กะ ${row.shift}` : "ไม่ระบุ",
+    row => toNumber(row.loss_time_min)
+  )).slice(0, 5);
+
+  const pmTopMachine = sortEntries(groupSum(
+    pmRows,
+    row => `${row.machine_name || "-"} | ${row.machine_no || "-"}`,
+    row => toNumber(row.loss_time_min)
+  )).slice(0, 3);
+
+  const topProblem = topProblemCount[0] || ["-", 0];
+  const topArea = topAreaCount[0] || ["-", 0];
+  const topMachine = topMachineDowntime[0] || ["-", 0];
+  const topShift = shiftDowntime[0] || ["-", 0];
+
+  const criticalMachines = performance.filter(item => item.status === "critical").length;
+  const watchMachines = performance.filter(item => item.status === "watch").length;
+  const focusMachine = performance[0] || null;
+
+  return {
+    title: "Monthly Maintenance Performance Report",
+    periodText: getPresentationPeriodText(),
+    filterText: getPresentationFilterText(),
+    printedAt: new Date().toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }),
+    breakdownRows,
+    pmRows,
+    allRows,
+    targets,
+    performance,
+    kpi: {
+      totalFailures,
+      downtimeMin,
+      downtimeHr: downtimeMin / 60,
+      avgDowntime,
+      activeMachines,
+      avgAvailability,
+      avgMtbf,
+      avgMttr,
+      pmJobs: pmRows.length,
+      pmTimeMin,
+      pmTimeHr: pmTimeMin / 60,
+      criticalMachines,
+      watchMachines
+    },
+    topMachineDowntime,
+    topProblemCount,
+    topAreaCount,
+    shiftDowntime,
+    pmTopMachine,
+    top: {
+      machine: topMachine,
+      problem: topProblem,
+      area: topArea,
+      shift: topShift,
+      focusMachine
+    },
+    evidencePhotos,
+    insight: buildMonthlyReportInsights({
+      totalFailures,
+      downtimeMin,
+      avgDowntime,
+      avgAvailability,
+      avgMtbf,
+      avgMttr,
+      targets,
+      topMachine,
+      topProblem,
+      topArea,
+      topShift,
+      criticalMachines,
+      watchMachines,
+      pmRows,
+      pmTimeMin,
+      focusMachine
+    })
+  };
+}
+
+function buildMonthlyReportInsights(data) {
+  const lines = [];
+  const actions = [];
+
+  if (!data.totalFailures) {
+    lines.push("ในช่วงที่เลือกไม่พบ Breakdown ที่นำมาคำนวณ KPI เครื่องเสีย");
+    actions.push("ให้ตรวจสอบความครบถ้วนของข้อมูล Repair Report และแยกงาน TPM/PM ออกจากงานเสียต่อไป");
+    return { lines, actions, conclusion: "สถานะโดยรวมยังไม่มี Breakdown สำหรับวิเคราะห์" };
+  }
+
+  lines.push(`เดือนนี้มี Breakdown ${formatNumber(data.totalFailures)} รายการ Downtime รวม ${formatNumber(data.downtimeMin)} นาที (${formatNumber(data.downtimeMin / 60, 1)} ชม.)`);
+  lines.push(`เครื่องที่กระทบสูงสุดคือ ${data.topMachine[0]} Downtime ${formatNumber(data.topMachine[1])} นาที`);
+  lines.push(`อาการที่เกิดบ่อยสุดคือ ${data.topProblem[0]} พบ ${formatNumber(data.topProblem[1])} ครั้ง และจุดเสียหลักคือ ${data.topArea[0]} พบ ${formatNumber(data.topArea[1])} ครั้ง`);
+
+  if (data.avgMttr > data.targets.mttr) {
+    actions.push(`MTTR เฉลี่ย ${formatNumber(data.avgMttr, 1)} นาที สูงกว่าเป้า ${formatNumber(data.targets.mttr)} นาที ควรเร่งลดเวลาวิเคราะห์/เตรียมอะไหล่และเครื่องมือให้พร้อม`);
+  } else {
+    actions.push(`MTTR เฉลี่ย ${formatNumber(data.avgMttr, 1)} นาที อยู่ในเกณฑ์เป้าหมาย ควรรักษามาตรฐานการตอบสนองของทีมซ่อม`);
+  }
+
+  if (data.avgMtbf < data.targets.mtbf) {
+    actions.push(`MTBF เฉลี่ย ${formatNumber(data.avgMtbf, 1)} ชม. ต่ำกว่าเป้า ${formatNumber(data.targets.mtbf)} ชม. ควรนำ Top Machine / Top Problem เข้าแผน PM เดือนถัดไป`);
+  } else {
+    actions.push(`MTBF เฉลี่ย ${formatNumber(data.avgMtbf, 1)} ชม. ผ่านเป้าหมาย ให้ติดตามเครื่องที่มีปัญหาซ้ำต่อเนื่อง`);
+  }
+
+  if (data.criticalMachines || data.watchMachines) {
+    actions.push(`มีเครื่องสถานะวิกฤต ${formatNumber(data.criticalMachines)} เครื่อง และเฝ้าระวัง ${formatNumber(data.watchMachines)} เครื่อง ควรจัดลำดับ PM ตามความเสี่ยงก่อน`);
+  }
+
+  if (data.pmRows.length) {
+    lines.push(`มีงาน TPM/PM แยกต่างหาก ${formatNumber(data.pmRows.length)} รายการ รวมเวลา ${formatNumber(data.pmTimeMin)} นาที ไม่ได้นำไปรวมเป็น Breakdown Downtime`);
+  }
+
+  const conclusion = data.criticalMachines
+    ? "ภาพรวมควรโฟกัสเครื่องวิกฤตและปัญหาซ้ำก่อน เพื่อป้องกัน Downtime ในเดือนถัดไป"
+    : data.watchMachines
+      ? "ภาพรวมยังควบคุมได้ แต่มีเครื่องที่ต้องเฝ้าระวังและควรติดตามผลหลัง PM"
+      : "ภาพรวมอยู่ในเกณฑ์ดี ให้รักษารอบ PM และติดตามแนวโน้มซ้ำรายเครื่อง";
+
+  return { lines, actions, conclusion };
+}
+
+function buildMonthlyPresentationReportHtml(report) {
+  const k = report.kpi;
+  const maxDowntime = Math.max(...report.topMachineDowntime.map(item => item[1]), 1);
+  const maxProblem = Math.max(...report.topProblemCount.map(item => item[1]), 1);
+  const maxArea = Math.max(...report.topAreaCount.map(item => item[1]), 1);
+
+  const machineRows = report.performance.slice(0, 8).map((item, idx) => `
+    <tr>
+      <td>${idx + 1}</td>
+      <td><strong>${escapeHtml(item.machine_name)} | ${escapeHtml(item.machine_no)}</strong><br><span>${escapeHtml(item.topArea || "-")}</span></td>
+      <td>${formatNumber(item.failureCount)}</td>
+      <td>${formatNumber(item.downtimeHr, 1)} ชม.</td>
+      <td>${formatNumber(item.mtbf, 1)} ชม.</td>
+      <td>${formatNumber(item.mttr, 1)} นาที</td>
+      <td>${formatNumber(item.availability, 1)}%</td>
+      <td>${renderReportStatus(item.status)}</td>
+    </tr>
+  `).join("") || `<tr><td colspan="8" class="empty">ไม่มีข้อมูลเครื่องจักร</td></tr>`;
+
+  const evidenceHtml = buildEvidencePhotoSection(report.evidencePhotos || []);
+
+  return `
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(report.title)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4 landscape; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Prompt", "Kanit", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #0f172a;
+    background: #f1f5f9;
+    font-size: 10.8px;
+    line-height: 1.55;
+    letter-spacing: -0.01em;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .toolbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px; background: #e2e8f0;
+  }
+  .toolbar button {
+    border: 0; border-radius: 10px; padding: 8px 14px;
+    background: #2563eb; color: white; font-weight: 600; cursor: pointer;
+  }
+  .report-page {
+    width: 100%; max-width: 1120px; margin: 0 auto 14px; background: white;
+    padding: 18px 20px; border-radius: 18px; box-shadow: 0 10px 28px rgba(15,23,42,.12);
+  }
+  .header {
+    display: grid; grid-template-columns: 1.4fr .9fr; gap: 16px;
+    padding-bottom: 12px; border-bottom: 2px solid #1e3a8a;
+  }
+  .eyebrow { color: #2563eb; font-weight: 800; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+  h1 { margin: 4px 0 6px; font-size: 25px; line-height: 1.15; letter-spacing: -0.03em; }
+  .subtitle { color: #475569; line-height: 1.55; font-size: 10.8px;
+    line-height: 1.55;
+    letter-spacing: -0.01em; }
+  .meta-box {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .meta { border: 1px solid #dbe3ef; border-radius: 12px; padding: 9px; background: #f8fafc; }
+  .meta span { display: block; color: #64748b; font-size: 9px; }
+  .meta strong { display: block; margin-top: 3px; font-size: 12px; }
+  .section { margin-top: 12px; }
+  .section-title {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #dbe3ef;
+  }
+  .section-title h2 { margin: 0; font-size: 15px; }
+  .section-title span { color: #64748b; font-size: 10px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .kpi {
+    border: 1px solid #dbe3ef; border-radius: 14px; padding: 10px;
+    background: linear-gradient(180deg, #fff, #f8fafc);
+    min-height: 72px;
+  }
+  .kpi .label { color: #64748b; font-size: 9.5px; font-weight: 600; }
+  .kpi .value { margin-top: 5px; font-size: 18px; font-weight: 900; line-height: 1.1; }
+  .kpi .note { margin-top: 4px; color: #64748b; font-size: 9px; }
+  .blue { border-left: 5px solid #2563eb; } .red { border-left: 5px solid #ef4444; }
+  .green { border-left: 5px solid #10b981; } .amber { border-left: 5px solid #f59e0b; }
+  .purple { border-left: 5px solid #7c3aed; } .dark { border-left: 5px solid #475569; }
+  .summary-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .box { border: 1px solid #dbe3ef; border-radius: 14px; padding: 11px; background: #fff; }
+  .box h3 { margin: 0 0 7px; font-size: 13px; }
+  .insight-list { margin: 0; padding-left: 18px; line-height: 1.65; }
+  .action-list { margin: 0; padding-left: 18px; line-height: 1.65; }
+  .conclusion { margin-top: 8px; padding: 9px 10px; border-radius: 12px; background: #eff6ff; color: #1e40af; font-weight: 600; }
+  .chart-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .bar-list { display: grid; gap: 7px; }
+  .bar-row { display: grid; grid-template-columns: 140px 1fr 58px; gap: 8px; align-items: center; }
+  .bar-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #334155; }
+  .bar-track { height: 10px; border-radius: 999px; background: #e2e8f0; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 999px; background: #2563eb; }
+  .bar-fill.red { background: #ef4444; } .bar-fill.amber { background: #f59e0b; }
+  .bar-value { text-align: right; font-weight: 800; color: #0f172a; }
+  table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  th { background: #eff6ff; color: #1e3a8a; text-align: left; padding: 7px; border: 1px solid #cbd5e1; }
+  td { padding: 7px; border: 1px solid #e2e8f0; vertical-align: top; }
+  td span { color: #64748b; }
+  .pill { display: inline-flex; border-radius: 999px; padding: 4px 8px; font-weight: 800; font-size: 9px; }
+  .pill.critical { background: #fee2e2; color: #b91c1c; }
+  .pill.watch { background: #fef3c7; color: #b45309; }
+  .pill.normal { background: #dcfce7; color: #047857; }
+  .empty { text-align: center; color: #64748b; padding: 14px; }
+  .footer-note { margin-top: 10px; color: #64748b; font-size: 9px; text-align: right; }
+  .evidence-job-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .evidence-card { border: 1px solid #dbe3ef; border-radius: 14px; overflow: hidden; background: #fff; page-break-inside: avoid; }
+  .grouped-job { display: grid; grid-template-columns: 44% 56%; align-items: stretch; }
+  .evidence-photo-stack { display: grid; gap: 8px; padding: 10px; background: #f8fafc; border-right: 1px solid #e2e8f0; }
+  .evidence-photo-stack.single { grid-template-columns: 1fr; }
+  .evidence-photo-stack.double { grid-template-columns: 1fr 1fr; }
+  .evidence-photo-stack.multi { grid-template-columns: 1fr 1fr; }
+  .evidence-photo-item { margin: 0; display: flex; flex-direction: column; }
+  .evidence-photo-item.before .evidence-photo { border-color: #fb923c; box-shadow: inset 0 0 0 2px rgba(251,146,60,0.18); }
+  .evidence-photo-item.after .evidence-photo { border-color: #22c55e; box-shadow: inset 0 0 0 2px rgba(34,197,94,0.18); }
+  .evidence-photo-item.during .evidence-photo { border-color: #60a5fa; box-shadow: inset 0 0 0 2px rgba(96,165,250,0.18); }
+  .evidence-photo-caption { margin-top: 6px; font-size: 8.4px; font-weight: 800; text-align: center; padding: 3px 8px; border-radius: 999px; align-self: center; }
+  .evidence-photo-caption.before { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; }
+  .evidence-photo-caption.after { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+  .evidence-photo-caption.during { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+  .evidence-photo-caption.other { background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; }
+  .evidence-photo { width: 100%; height: 220px; object-fit: contain; display: block; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 6px; }
+  .evidence-info { padding: 14px 15px 15px; }
+  .evidence-info strong { display: block; font-size: 12.2px; line-height: 1.35; margin-bottom: 10px; color: #0f172a; letter-spacing: -0.01em; }
+  .evidence-info p { margin: 0; color: #334155; font-size: 9.8px; line-height: 1.52; }
+  .evidence-badge { display: inline-flex; padding: 5px 10px; border-radius: 999px; background: #f8fafc; color: #334155; font-size: 8.6px; font-weight: 600; border: 1px solid #dbe3ef; }
+  .evidence-type-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .evidence-detail-title { color: #64748b; font-weight: 600; min-width: 78px; display: inline-block; }
+  .evidence-detail-value { color: #0f172a; font-weight: 500; }
+  .evidence-meta-list { display: grid; gap: 7px; }
+  .evidence-meta-item { display: grid; grid-template-columns: 88px 1fr; gap: 10px; align-items: start; padding: 5px 0; border-bottom: 1px dashed #e2e8f0; }
+  .evidence-meta-item.is-downtime { margin: 6px 0 2px; padding: 9px 10px; border: 1px solid #fecaca; border-radius: 12px; background: #fff5f5; }
+  .evidence-meta-item.is-downtime .evidence-detail-title { color: #b91c1c; }
+  .evidence-meta-item.is-downtime .evidence-detail-value { color: #dc2626; font-weight: 800; font-size: 10.8px; }
+  .evidence-meta-item:last-child { border-bottom: none; }
+  .evidence-remark { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #cbd5e1; }
+  @media print {
+    body { background: white; }
+    .toolbar { display: none; }
+    .report-page { box-shadow: none; margin: 0; max-width: none; border-radius: 0; padding: 0; }
+    .section { page-break-inside: avoid; }
+    tr, .box, .kpi, .evidence-card { page-break-inside: avoid; }
+    .grouped-job { grid-template-columns: 44% 56%; }
+  }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="window.print()">Print / Save PDF</button>
+    <button onclick="window.close()">Close</button>
+  </div>
+
+  <main class="report-page">
+    <section class="header">
+      <div>
+        <div class="eyebrow">MPR Smart Maintenance</div>
+        <h1>Monthly Maintenance Report</h1>
+        <div class="subtitle">
+          สรุปผลการซ่อมบำรุงประจำเดือน แยก Breakdown Downtime ออกจากงาน TPM/PM เพื่อใช้ประชุมและวางแผนปรับปรุงเครื่องจักร
+        </div>
+      </div>
+      <div class="meta-box">
+        <div class="meta"><span>Period</span><strong>${escapeHtml(report.periodText)}</strong></div>
+        <div class="meta"><span>Filter</span><strong>${escapeHtml(report.filterText)}</strong></div>
+        <div class="meta"><span>Printed</span><strong>${escapeHtml(report.printedAt)}</strong></div>
+        <div class="meta"><span>Report Type</span><strong>Monthly Summary</strong></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title"><h2>1. Executive KPI Summary</h2><span>Breakdown KPI + TPM/PM Activity</span></div>
+      <div class="kpi-grid">
+        ${reportKpiCard("Breakdown Jobs", `${formatNumber(k.totalFailures)}`, "รายการ", "blue")}
+        ${reportKpiCard("Breakdown Downtime", `${formatNumber(k.downtimeHr, 1)}`, "ชั่วโมง", "red")}
+        ${reportKpiCard("MTTR Avg", `${formatNumber(k.avgMttr, 1)}`, `นาที | Target ${formatNumber(report.targets.mttr)} นาที`, k.avgMttr <= report.targets.mttr ? "green" : "amber")}
+        ${reportKpiCard("MTBF Avg", `${formatNumber(k.avgMtbf, 1)}`, `ชั่วโมง | Target ${formatNumber(report.targets.mtbf)} ชม.`, k.avgMtbf >= report.targets.mtbf ? "green" : "amber")}
+        ${reportKpiCard("Availability", `${formatNumber(k.avgAvailability, 1)}%`, `Target ${formatNumber(report.targets.availability)}%`, k.avgAvailability >= report.targets.availability ? "green" : "amber")}
+        ${reportKpiCard("TPM/PM Activity", `${formatNumber(k.pmJobs)}`, `${formatNumber(k.pmTimeHr, 1)} ชม.`, "purple")}
+      </div>
+    </section>
+
+    <section class="section summary-layout">
+      <div class="box">
+        <h3>2. สรุปประเด็นสำคัญประจำเดือน</h3>
+        <ul class="insight-list">
+          ${report.insight.lines.map(line => `<li>${escapeHtml(line)}</li>`).join("")}
+        </ul>
+        <div class="conclusion">${escapeHtml(report.insight.conclusion)}</div>
+      </div>
+      <div class="box">
+        <h3>3. ข้อเสนอแนะ / Action Plan</h3>
+        <ul class="action-list">
+          ${report.insight.actions.map(line => `<li>${escapeHtml(line)}</li>`).join("")}
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title"><h2>4. Top Ranking สำหรับโฟกัสเดือนถัดไป</h2><span>ใช้สำหรับประชุม PM / Kaizen / Spare Part</span></div>
+      <div class="chart-grid">
+        <div class="box">
+          <h3>Top Downtime Machine</h3>
+          ${reportBarList(report.topMachineDowntime, maxDowntime, "นาที", "red")}
+        </div>
+        <div class="box">
+          <h3>Top Problem</h3>
+          ${reportBarList(report.topProblemCount, maxProblem, "ครั้ง", "amber")}
+        </div>
+        <div class="box">
+          <h3>Top Area Point</h3>
+          ${reportBarList(report.topAreaCount, maxArea, "ครั้ง", "blue")}
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title"><h2>5. Machine Performance Priority</h2><span>เรียงตามความเสี่ยงและ Downtime</span></div>
+      <table>
+        <thead>
+          <tr>
+            <th>No.</th><th>Machine / Main Area</th><th>Failure</th><th>Downtime</th><th>MTBF</th><th>MTTR</th><th>Availability</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>${machineRows}</tbody>
+      </table>
+    </section>
+
+    ${evidenceHtml}
+
+    <section class="section summary-layout">
+      <div class="box">
+        <h3>7. Shift Downtime</h3>
+        ${reportBarList(report.shiftDowntime, Math.max(...report.shiftDowntime.map(item => item[1]), 1), "นาที", "blue")}
+      </div>
+      <div class="box">
+        <h3>8. TPM/PM Activity แยกจาก Breakdown</h3>
+        ${report.pmTopMachine.length ? reportBarList(report.pmTopMachine, Math.max(...report.pmTopMachine.map(item => item[1]), 1), "นาที", "amber") : `<div class="empty">ไม่มีงาน TPM/PM ในช่วงนี้</div>`}
+      </div>
+    </section>
+
+    <div class="footer-note">Prepared by MPR Smart Maintenance Dashboard · Breakdown KPI excludes TPM/PM activity</div>
+  </main>
+</body>
+</html>`;
+}
+
+
+function rankEvidenceImageType(type) {
+  const t = String(type || "").toLowerCase();
+  if (t.includes("before") || t.includes("ก่อน")) return 1;
+  if (t.includes("during") || t.includes("ระหว่าง")) return 2;
+  if (t.includes("after") || t.includes("หลัง")) return 3;
+  return 9;
+}
+
+
+function classifyEvidenceImageType(type) {
+  const t = String(type || "").toLowerCase();
+  if (t.includes("before") || t.includes("ก่อน")) return "before";
+  if (t.includes("during") || t.includes("ระหว่าง")) return "during";
+  if (t.includes("after") || t.includes("หลัง")) return "after";
+  return "other";
+}
+
+function buildEvidencePhotoSection(photos) {
+  if (!photos || !photos.length) {
+    return `
+    <section class="section">
+      <div class="section-title"><h2>6. Evidence Photos from Repair Reports</h2><span>รูปภาพประกอบจากรายงานซ่อม</span></div>
+      <div class="box"><div class="empty">ไม่มีรูปภาพประกอบจากรายงานซ่อมในช่วงนี้ หรือยังไม่ได้เปิดสิทธิ์อ่านตาราง repair_images</div></div>
+    </section>`;
+  }
+
+  const groupedMap = new Map();
+
+  photos.forEach(photo => {
+    const row = photo.row || {};
+    const key = String(row.id || row.record_id || `${row.machine_name || '-'}|${row.machine_no || '-'}|${row.repair_date || '-'}`);
+    if (!groupedMap.has(key)) {
+      groupedMap.set(key, {
+        row,
+        downtime: toNumber(row.loss_time_min),
+        sortTime: photo.sortTime || 0,
+        photos: []
+      });
+    }
+    groupedMap.get(key).photos.push(photo);
+  });
+
+  const grouped = Array.from(groupedMap.values())
+    .map(group => {
+      group.photos = group.photos
+        .sort((a, b) => rankEvidenceImageType(a.imageType) - rankEvidenceImageType(b.imageType));
+      return group;
+    })
+    .sort((a, b) => b.downtime - a.downtime || b.sortTime - a.sortTime)
+    .slice(0, 6);
+
+  return `
+    <section class="section">
+      <div class="section-title"><h2>6. Evidence Photos from Repair Reports</h2><span>จัดกลุ่มเป็นงานเดียวกัน อ่านง่ายแบบรายงาน พร้อมรูป Before / After และชื่อช่างผู้ซ่อม</span></div>
+      <div class="evidence-job-grid">
+        ${grouped.map(group => {
+          const row = group.row || {};
+          const photoGridClass = group.photos.length === 1 ? 'single' : group.photos.length === 2 ? 'double' : 'multi';
+          return `
+            <article class="evidence-card grouped-job">
+              <div class="evidence-photo-stack ${photoGridClass}">
+                ${group.photos.map(photo => {
+                  const photoTypeClass = classifyEvidenceImageType(photo.imageType);
+                  return `
+                  <figure class="evidence-photo-item ${photoTypeClass}">
+                    <img class="evidence-photo ${photoTypeClass}" src="${escapeHtml(photo.url)}" alt="Repair evidence" loading="eager" decoding="sync" referrerpolicy="no-referrer">
+                    <figcaption class="evidence-photo-caption ${photoTypeClass}">${escapeHtml(photo.imageType || 'Repair Photo')}</figcaption>
+                  </figure>
+                `;}).join('')}
+              </div>
+              <div class="evidence-info">
+                <strong>${escapeHtml(row.machine_name || "-")} | ${escapeHtml(row.machine_no || "-")}</strong>
+                <div class="evidence-meta-list">
+                  <p class="evidence-meta-item"><span class="evidence-detail-title">วันที่</span><span class="evidence-detail-value">${escapeHtml(formatDateForReport(row.repair_date))} · กะ ${escapeHtml(row.shift || "-")}</span></p>
+                  <p class="evidence-meta-item"><span class="evidence-detail-title">ช่างผู้ซ่อม</span><span class="evidence-detail-value">${escapeHtml(row.technician_name || row.technician || row.technician_code || "-")}</span></p>
+                  <p class="evidence-meta-item"><span class="evidence-detail-title">จุดเสีย</span><span class="evidence-detail-value">${escapeHtml(row.area_point_name || "-")}</span></p>
+                  <p class="evidence-meta-item"><span class="evidence-detail-title">อาการ</span><span class="evidence-detail-value">${escapeHtml(row.problem_name || "-")}</span></p>
+                  <p class="evidence-meta-item is-downtime"><span class="evidence-detail-title">Downtime</span><span class="evidence-detail-value">${formatNumber(row.loss_time_min)} นาที</span></p>
+                  <p class="evidence-meta-item"><span class="evidence-detail-title">การแก้ไข</span><span class="evidence-detail-value">${escapeHtml(row.action_name || row.action || "-")}</span></p>
+                  <p class="evidence-meta-item"><span class="evidence-detail-title">ผลหลังซ่อม</span><span class="evidence-detail-value">${escapeHtml(row.repair_result || row.result || "-")}</span></p>
+                </div>
+                <p class="evidence-remark"><span class="evidence-detail-title">หมายเหตุช่าง</span><span class="evidence-detail-value">${escapeHtmlWithBreaks(row.remark || row.remarks || "-")}</span></p>
+                <div class="evidence-type-row">
+                  ${(() => {
+                    const counts = {};
+                    group.photos.forEach(photo => {
+                      const label = photo.imageType || "Repair Photo";
+                      counts[label] = (counts[label] || 0) + 1;
+                    });
+                    return Object.entries(counts).map(([label, count]) => `<span class="evidence-badge">${escapeHtml(label)}${count > 1 ? ` × ${count}` : ``}</span>`).join('');
+                  })()}
+                </div>
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </div>
+    </section>`;
+}
+
+function reportKpiCard(label, value, note, colorClass) {
+  return `
+    <div class="kpi ${colorClass}">
+      <div class="label">${escapeHtml(label)}</div>
+      <div class="value">${escapeHtml(value)}</div>
+      <div class="note">${escapeHtml(note)}</div>
+    </div>
+  `;
+}
+
+function reportBarList(items, maxValue, suffix, color = "blue") {
+  if (!items || !items.length) {
+    return `<div class="empty">ไม่มีข้อมูล</div>`;
+  }
+
+  return `
+    <div class="bar-list">
+      ${items.map(([name, value]) => {
+        const percent = maxValue ? clamp((Number(value || 0) / maxValue) * 100, 4, 100) : 0;
+        return `
+          <div class="bar-row">
+            <div class="bar-name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+            <div class="bar-track"><div class="bar-fill ${color}" style="width:${percent}%"></div></div>
+            <div class="bar-value">${formatNumber(value)} ${escapeHtml(suffix)}</div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderReportStatus(status) {
+  if (status === "critical") return `<span class="pill critical">วิกฤต</span>`;
+  if (status === "watch") return `<span class="pill watch">เฝ้าระวัง</span>`;
+  return `<span class="pill normal">ปกติ</span>`;
+}
+
+function getPresentationPeriodText() {
+  const from = els.fromDate?.value || "";
+  const to = els.toDate?.value || "";
+
+  if (!from || !to) return "-";
+
+  const fromDate = parseDate(from);
+  const toDate = parseDate(to);
+  const sameMonth = fromDate.getFullYear() === toDate.getFullYear() && fromDate.getMonth() === toDate.getMonth();
+
+  if (sameMonth) {
+    return fromDate.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  }
+
+  return `${formatDateForReport(from)} - ${formatDateForReport(to)}`;
+}
+
+function getPresentationFilterText() {
+  const shiftText = els.shiftFilter?.value ? `Shift ${els.shiftFilter.value}` : "All Shifts";
+  const machineText = els.machineFilter?.value || "All Machines";
+  return `${shiftText} / ${machineText}`;
+}
+
+function formatDateForReport(value) {
+  if (!value) return "-";
+  return parseDate(value).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
 }
