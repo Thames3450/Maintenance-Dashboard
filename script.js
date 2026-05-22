@@ -1526,6 +1526,74 @@ function escapeHtmlWithBreaks(value) {
   return escapeHtml(value || "-").replace(/\n/g, "<br>");
 }
 
+
+function pickFirstValue(row, keys) {
+  for (const key of keys) {
+    const value = row?.[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+  return "";
+}
+
+function formatRepairClock(value) {
+  if (value === undefined || value === null || String(value).trim() === "") return "";
+
+  const raw = String(value).trim();
+
+  const timeMatch = raw.match(/(\d{1,2}):(\d{2})(?::\d{2})?/);
+  if (timeMatch) {
+    return `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}`;
+  }
+
+  const date = new Date(raw);
+  if (!Number.isNaN(date.getTime())) {
+    return date.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
+  }
+
+  return raw;
+}
+
+function formatRepairTimeRange(row) {
+  const start = pickFirstValue(row, [
+    "start_repair_time",
+    "repair_start_time",
+    "repair_start",
+    "start_time",
+    "start_repair",
+    "time_start",
+    "repair_time_start",
+    "start"
+  ]);
+
+  const end = pickFirstValue(row, [
+    "repair_end_time",
+    "end_repair_time",
+    "end_repair",
+    "repair_finish_time",
+    "repair_end",
+    "end_time",
+    "finish_time",
+    "time_end",
+    "repair_time_end",
+    "end"
+  ]);
+
+  const startText = formatRepairClock(start);
+  const endText = formatRepairClock(end);
+
+  if (startText && endText) return `${startText} - ${endText}`;
+  if (startText) return `${startText} - ไม่ระบุเวลาจบ`;
+  if (endText) return `ไม่ระบุเวลาเริ่ม - ${endText}`;
+
+  return "-";
+}
+
 function refreshIcons() {
   if (window.lucide) lucide.createIcons();
 }
@@ -2158,6 +2226,7 @@ function buildEvidencePhotoSection(photos) {
                 <div class="evidence-meta-list">
                   <p class="evidence-meta-item"><span class="evidence-detail-title">วันที่</span><span class="evidence-detail-value">${escapeHtml(formatDateForReport(row.repair_date))} · กะ ${escapeHtml(row.shift || "-")}</span></p>
                   <p class="evidence-meta-item"><span class="evidence-detail-title">ช่างผู้ซ่อม</span><span class="evidence-detail-value">${escapeHtml(row.technician_name || row.technician || row.technician_code || "-")}</span></p>
+                  <p class="evidence-meta-item"><span class="evidence-detail-title">ช่วงเวลาซ่อม</span><span class="evidence-detail-value">${escapeHtml(formatRepairTimeRange(row))}</span></p>
                   <p class="evidence-meta-item"><span class="evidence-detail-title">จุดเสีย</span><span class="evidence-detail-value">${escapeHtml(row.area_point_name || "-")}</span></p>
                   <p class="evidence-meta-item"><span class="evidence-detail-title">อาการ</span><span class="evidence-detail-value">${escapeHtml(row.problem_name || "-")}</span></p>
                   <p class="evidence-meta-item is-downtime"><span class="evidence-detail-title">Downtime</span><span class="evidence-detail-value">${formatNumber(row.loss_time_min)} นาที</span></p>
