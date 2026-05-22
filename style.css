@@ -1163,7 +1163,7 @@ body {
   background: #e0f2fe;
   color: #0369a1;
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -1182,7 +1182,7 @@ body {
 
 .pm-tpm-card span {
   display: block;
-  color: #3f4041;
+  color: #64748b;
   font-size: 0.82rem;
   font-weight: 600;
   line-height: 1.35;
@@ -1191,9 +1191,9 @@ body {
 .pm-tpm-card strong {
   display: block;
   margin-top: 7px;
-  color: #2e7c45;
+  color: #0f172a;
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: 800;
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
